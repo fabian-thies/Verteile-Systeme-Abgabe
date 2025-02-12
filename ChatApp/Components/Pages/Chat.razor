@@ -1,5 +1,6 @@
 ﻿@page "/chat"
 @rendermode InteractiveServer
+@using ChatApp.Models
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager NavigationManager
 
@@ -17,19 +18,9 @@
 
     <input @bind="messageInput" placeholder="Type your message" @onkeypress="HandleKeyPress"/>
     <button @onclick="SendMessage">Send</button>
-
-    <button @onclick="SendMessagee">Send</button>
 </div>
 
 @code {
-
-    public class ChatMessage
-    {
-        public string User { get; set; } = string.Empty;
-        public string Text { get; set; } = string.Empty;
-        public DateTime Timestamp { get; set; } = DateTime.Now;
-    }
-
     private HubConnection? hubConnection;
 
     private List<ChatMessage> messages = new List<ChatMessage>();
@@ -75,16 +66,6 @@
     }
 
     private async Task SendMessage()
-    {
-        Console.WriteLine("Sending message: " + messageInput);
-        if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected && !string.IsNullOrWhiteSpace(messageInput))
-        {
-            await hubConnection.SendAsync("SendMessage", userName, messageInput);
-            messageInput = string.Empty;
-        }
-    }
-
-    private async Task SendMessagee()
     {
         Console.WriteLine("Sending message: " + messageInput);
         if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected && !string.IsNullOrWhiteSpace(messageInput))

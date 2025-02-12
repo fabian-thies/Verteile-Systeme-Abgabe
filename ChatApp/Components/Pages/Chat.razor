@@ -1,0 +1,113 @@
+﻿@page "/chat"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+
+<div class="chat-container">
+    <h3>Chat Room</h3>
+    <div class="messages">
+        @foreach (var message in messages)
+        {
+            <div class="message">
+                <strong>@message.User:</strong> @message.Text
+                <span class="timestamp">(@message.Timestamp.ToShortTimeString())</span>
+            </div>
+        }
+    </div>
+
+    <input @bind="messageInput" placeholder="Type your message" @onkeypress="HandleKeyPress"/>
+    <button @onclick="SendMessage">Send</button>
+
+    <button @onclick="SendMessagee">Send</button>
+</div>
+
+@code {
+
+    public class ChatMessage
+    {
+        public string User { get; set; } = string.Empty;
+        public string Text { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+    }
+
+    private HubConnection? hubConnection;
+
+    private List<ChatMessage> messages = new List<ChatMessage>();
+
+    private string messageInput = string.Empty;
+
+    private string userName = "User";
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/chathub"))
+            .WithAutomaticReconnect()
+            .Build();
+
+        hubConnection.Closed += async (error) =>
+        {
+            Console.WriteLine("Hub connection closed.");
+            if (error != null)
+            {
+                Console.WriteLine("Error: " + error.Message);
+            }
+
+            await Task.Delay(1000);
+            await hubConnection.StartAsync();
+        };
+
+        hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        {
+            messages.Add(new ChatMessage { User = user, Text = message, Timestamp = DateTime.Now });
+            InvokeAsync(StateHasChanged);
+        });
+
+        try
+        {
+            await hubConnection.StartAsync();
+            Console.WriteLine("Hub connection started. State: " + hubConnection.State);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error starting hub connection: " + ex.Message);
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        Console.WriteLine("Sending message: " + messageInput);
+        if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected && !string.IsNullOrWhiteSpace(messageInput))
+        {
+            await hubConnection.SendAsync("SendMessage", userName, messageInput);
+            messageInput = string.Empty;
+        }
+    }
+
+    private async Task SendMessagee()
+    {
+        Console.WriteLine("Sending message: " + messageInput);
+        if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected && !string.IsNullOrWhiteSpace(messageInput))
+        {
+            await hubConnection.SendAsync("SendMessage", userName, messageInput);
+            messageInput = string.Empty;
+        }
+    }
+
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SendMessage();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+}

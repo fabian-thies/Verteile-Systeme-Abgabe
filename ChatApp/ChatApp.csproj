@@ -18,5 +18,7 @@
       <Folder Include="Plugins\" />
       <Folder Include="wwwroot\lib\" />
     </ItemGroup>
-
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+		<Exec Command="npm run tailwind:watch" />
+	</Target>
 </Project>

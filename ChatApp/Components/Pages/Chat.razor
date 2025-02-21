@@ -1,32 +1,33 @@
-﻿@page "/chat"
+﻿@page "/"
 @rendermode InteractiveServer
 @using ChatApp.Models
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager NavigationManager
+@using ChatApp.Components.Chat
 
 <div class="chat-container">
-    <h3>Chat Room</h3>
     <div class="messages">
         @foreach (var message in messages)
         {
-            <div class="message">
-                <strong>@message.User:</strong> @message.Text
-                <span class="timestamp">(@message.Timestamp.ToShortTimeString())</span>
-            </div>
+            <ChatMessage Username="@message.User" Message="@message.Text" Timestamp="@message.Timestamp"/>
         }
     </div>
 
-    <input @bind="messageInput" placeholder="Type your message" @onkeypress="HandleKeyPress"/>
-    <button @onclick="SendMessage">Send</button>
+    <div class="flex gap-6">
+        <input @bind="messageInput" @bind:event="oninput" @onkeypress="HandleKeyPress" type="text"
+               placeholder="Nachricht an xxx"
+               class="block  mt-2 w-full placeholder-gray-400/70 dark:placeholder-gray-500 rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-gray-700 focus:border-blue-400 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-300 dark:focus:border-blue-300"/>
+        <button @onclick="SendMessage"
+                class="block mt-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg px-5 py-2.5 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40">
+            Senden
+        </button>
+    </div>
 </div>
 
 @code {
     private HubConnection? hubConnection;
-
-    private List<ChatMessage> messages = new List<ChatMessage>();
-
+    private List<ChatApp.Models.ChatMessage> messages = new List<ChatApp.Models.ChatMessage>();
     private string messageInput = string.Empty;
-
     private string userName = "User";
 
     protected override async Task OnInitializedAsync()
@@ -50,7 +51,7 @@
 
         hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
         {
-            messages.Add(new ChatMessage { User = user, Text = message, Timestamp = DateTime.Now });
+            messages.Add(new Models.ChatMessage { User = user, Text = message, Timestamp = DateTime.Now });
             InvokeAsync(StateHasChanged);
         });
 
@@ -65,9 +66,9 @@
         }
     }
 
+    // Send message to the server
     private async Task SendMessage()
     {
-        Console.WriteLine("Sending message: " + messageInput);
         if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected && !string.IsNullOrWhiteSpace(messageInput))
         {
             await hubConnection.SendAsync("SendMessage", userName, messageInput);

@@ -6,8 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .WriteTo.File("logs/myapp.log", rollingInterval: RollingInterval.Day)
-    .Enrich.WithProperty("Application", "MyApp")
+    .WriteTo.File("logs/ChatApp.log", rollingInterval: RollingInterval.Day)
+    .Enrich.WithProperty("Application", "ChatApp")
     .CreateLogger();
 
 builder.Services.AddRazorComponents()

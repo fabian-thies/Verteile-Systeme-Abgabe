@@ -13,6 +13,7 @@ obj/
 *.snupkg
 *.vscode/
 .vscode/
+.vs
 
 .idea/
 *.sln.iml

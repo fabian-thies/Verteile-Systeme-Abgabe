@@ -1,11 +1,9 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<div class="page flex flex-nowrap">
+    <SideBar/>
 
-    <main>
+    <main class="w-full">
         <article class="content px-4">
             @Body
         </article>

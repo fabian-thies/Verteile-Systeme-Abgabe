@@ -1,6 +1,5 @@
 using ChatApp.Components;
 using ChatApp.Hubs;
-using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,8 +13,6 @@ Log.Logger = new LoggerConfiguration()
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddSignalR();
-builder.Services.AddScoped<AuthenticationService>();
-
 builder.Host.UseSerilog();
 
 var app = builder.Build();

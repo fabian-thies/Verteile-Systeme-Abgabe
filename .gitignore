@@ -49,3 +49,5 @@ Thumbs.db
 *.swp
 
 node_modules/
+ChatApp/appsettings.json
+ChatApp/appsettings.Development.json

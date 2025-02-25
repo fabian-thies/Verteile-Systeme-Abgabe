@@ -1,0 +1,12 @@
+﻿<a href="/chat/fabian">
+    <div class="flex items-center gap-4 p-4 bg-[#303346] rounded-lg">
+        <img class="w-8 h-8 rounded-full" src="https://placehold.co/600x600" alt="Profile Picture"/>
+        <h1>
+            <span class="text-md font-semibold text-gray-900 dark:text-white">@Username</span>
+        </h1>
+    </div>
+</a>
+
+@code {
+    [Parameter, EditorRequired] public String Username { get; set; } = "";
+}

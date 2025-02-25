@@ -1,0 +1,62 @@
+﻿@page "/register"
+@using Microsoft.AspNetCore.Authentication
+@inject AuthenticationService AuthService
+@inject NavigationManager Navigation
+
+<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-sm">
+        <h2 class="text-2xl/9 mt-10 text-center font-bold tracking-tight text-white">Register your account</h2>
+    </div>
+
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
+        <EditForm Model="registerModel" OnValidSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div>
+                <label for="email" class="text-sm/6 block font-medium text-white">Email address</label>
+                <div class="mt-2">
+                    <input type="email" name="email" id="email" autocomplete="email" required class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6">
+                </div>
+            </div>
+
+            <div>
+                <label for="password" class="text-sm/6 block font-medium text-white">Password</label>
+                <div class="mt-2">
+                    <InputText id="password" type="password" class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900" @bind-Value="registerModel.Password" />
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" class="text-sm/6 shadow-xs flex w-full justify-center rounded-md bg-indigo-600 px-3 py-1.5 font-semibold text-white hover:bg-indigo-500">Register</button>
+            </div>
+        </EditForm>
+
+        <p class="text-sm/6 mt-10 text-center text-gray-500">
+            <a href="/login" class="font-semibold">Login</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private RegisterModel registerModel = new RegisterModel();
+
+    private async Task HandleRegister()
+    {
+        var result = await AuthService.Register(registerModel);
+        if (result)
+        {
+            Navigation.NavigateTo("/login");
+        }
+        else
+        {
+            // Handle registration failure
+        }
+    }
+
+    public class RegisterModel
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
+    }
+}

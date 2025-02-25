@@ -5,6 +5,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @using ChatApp.Components.Chat
+@using ChatApp.Data
 
 <div class="chat-container h-screen flex flex-col">
     <div class="flex-grow">
@@ -16,10 +17,10 @@
         </div>
         <hr class="border-gray-600">
     </div>
-    <div class="messages flex flex-nowrap flex-col gap-4 overflow-y-scroll" @ref="messagesContainer">
+    <div class="messages space-y-5 overflow-y-scroll px-10" @ref="messagesContainer">
         @foreach (var message in messages)
         {
-            <ChatMessage Username="@message.User" Message="@message.Text" Timestamp="@message.Timestamp"/>
+            <ChatMessage Username="@message.User.Username" Message="@message.Text" Timestamp="@message.Timestamp"/>
         }
     </div>
     <div class="flex gap-6 w-full p-4">
@@ -35,7 +36,7 @@
 
 @code {
     private HubConnection? hubConnection;
-    private List<ChatApp.Models.ChatMessage> messages = new List<ChatApp.Models.ChatMessage>();
+    private List<Data.ChatMessage> messages = new List<Data.ChatMessage>();
     private string messageInput = string.Empty;
     private string userName = "User";
     private ElementReference messagesContainer;
@@ -60,9 +61,9 @@
             await hubConnection.StartAsync();
         };
 
-        hubConnection.On<string, string>("ReceiveMessage", (user, message) =>
+        hubConnection.On<ChatApp.Data.User, string>("ReceiveMessage", (user, message) =>
         {
-            messages.Add(new Models.ChatMessage { User = user, Text = message, Timestamp = DateTime.Now });
+            messages.Add(new Data.ChatMessage { User = user, Text = message, Timestamp = DateTime.Now });
             shouldScroll = true;
             InvokeAsync(StateHasChanged);
         });
@@ -82,9 +83,20 @@
     {
         if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected && !string.IsNullOrWhiteSpace(messageInput))
         {
-            await hubConnection.SendAsync("SendMessage", userName, messageInput);
-            messageInput = string.Empty;
+            var user = await GetUserByUsername(userName);
+            if (user != null)
+            {
+                await hubConnection.SendAsync("SendMessage", user, messageInput);
+                messageInput = string.Empty;
+            }
         }
+    }
+
+    private async Task<User?> GetUserByUsername(string username)
+    {
+        // Implement the logic to get the user by username
+        // This could be an API call or a database query
+        return await Task.FromResult(new ChatApp.Data.User { Username = username });
     }
 
     private async Task HandleKeyPress(KeyboardEventArgs e)
@@ -111,4 +123,5 @@
             await hubConnection.DisposeAsync();
         }
     }
+
 }

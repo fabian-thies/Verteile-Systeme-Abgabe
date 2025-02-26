@@ -1,9 +1,12 @@
-﻿@page "/login"
-@using ChatApp.Models
-@using Microsoft.AspNetCore.Identity
-@inject NavigationManager Navigation
-@inject SignInManager<ApplicationUser> SignInManager
-@rendermode InteractiveServer
+﻿/***** Login.razor (Blazor Server Component) *****/
+@page "/login"
+
+<!-- 
+Comments in English: 
+  We switch from EditForm/SignInManager calls (which break header-writing),
+  to a traditional <form method="post" action="/login"> so the cookie can be set
+  in a normal HTTP POST before the SignalR circuit is established.
+-->
 
 <div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-sm">
@@ -11,25 +14,21 @@
     </div>
 
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
-        <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
-            <DataAnnotationsValidator/>
-            <ValidationSummary/>
-
+        <!-- Comments in English: Standard HTML form, posts directly to /login -->
+        <form method="post" action="/login">
             <div>
                 <label for="email" class="text-sm/6 block font-medium text-white">Email address</label>
                 <div class="mt-2">
-                    <InputText id="email" type="email"
-                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900"
-                               @bind-Value="loginModel.Email"/>
+                    <input id="email" name="Email" type="email"
+                           class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900" />
                 </div>
             </div>
 
             <div>
                 <label for="password" class="text-sm/6 mt-6 block font-medium text-white">Password</label>
                 <div class="mt-2">
-                    <InputText id="password" type="password"
-                               class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900"
-                               @bind-Value="loginModel.Password"/>
+                    <input id="password" name="Password" type="password"
+                           class="block w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900" />
                 </div>
             </div>
 
@@ -39,31 +38,10 @@
                     Sign in
                 </button>
             </div>
-        </EditForm>
+        </form>
 
         <p class="text-sm/6 mt-10 text-center text-gray-500">
             <a href="/register" class="font-semibold">Register</a>
         </p>
     </div>
 </div>
-
-@code {
-    private LoginModel loginModel = new LoginModel();
-
-    private async Task HandleLogin()
-    {
-        var result = await SignInManager.PasswordSignInAsync(loginModel.Email, loginModel.Password, false, false);
-
-        if (result.Succeeded)
-        {
-            Navigation.NavigateTo("/");
-        }
-    }
-
-    public class LoginModel
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
-    }
-
-}

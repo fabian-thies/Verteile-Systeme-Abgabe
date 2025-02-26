@@ -1,0 +1,17 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="dotnet-watch" type="RunDotNetWatch" factoryName="RunDotNetWatch">
+    <option name="envs">
+      <map>
+        <entry key="ASPNETCORE_URLS" value="http://localhost:5096 ASPNETCORE_ENVIRONMENT=Development" />
+      </map>
+    </option>
+    <option name="exePath" value="$PROJECT_DIR$/ChatFileApp/bin/Debug/net9.0/ChatFileApp.exe" />
+    <option name="programParameters" value="" />
+    <option name="projectFilePath" value="$PROJECT_DIR$/ChatFileApp/ChatFileApp.csproj" />
+    <option name="projectTfm" value="net9.0" />
+    <option name="suppressBrowserLaunch" value="true" />
+    <option name="watchParameters" value="" />
+    <option name="workingDirectory" value="$PROJECT_DIR$/ChatFileApp" />
+    <method v="2" />
+  </configuration>
+</component>

@@ -51,3 +51,5 @@ Thumbs.db
 node_modules/
 ChatApp/appsettings.json
 ChatApp/appsettings.Development.json
+/ChatFileApp/bin
+/ChatFileApp/obj

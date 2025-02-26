@@ -1,7 +1,0 @@
-﻿<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="run dev" type="CompoundRunConfigurationType">
-    <toRun name="dev" type="RunDotNetWatch" />
-    <toRun name="tailwind:watch" type="js.build_tools.npm" />
-    <method v="2" />
-  </configuration>
-</component>

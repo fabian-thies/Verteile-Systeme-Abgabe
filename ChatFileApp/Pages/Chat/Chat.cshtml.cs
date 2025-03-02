@@ -2,12 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace ChatFileApp.Pages.Chat
 {
     public class ChatModel : PageModel
     {
-        // Injecting the ApplicationDbContext to access the database
         private readonly ApplicationDbContext _context;
 
         public ChatModel(ApplicationDbContext context)
@@ -15,34 +15,65 @@ namespace ChatFileApp.Pages.Chat
             _context = context;
         }
 
-        // List to hold messages for the current conversation
         public List<Message>? Messages { get; set; }
         
         public int ChatId { get; set; }
 
         public Conversation? Conversation { get; set; }
 
-        // OnGetAsync retrieves the conversation and its messages based on chatId from the URL
+        [BindProperty]
+        public string? NewMessage { get; set; }
+
         public async Task<IActionResult> OnGetAsync(int chatId)
         {
             ChatId = chatId;
-            
-            // Retrieve the conversation including its messages and the associated users
+
             Conversation = await _context.Conversations
                 .Include(c => c.Messages)
                 .ThenInclude(m => m.User)
                 .FirstOrDefaultAsync(c => c.Id == chatId);
 
-            // If no conversation is found, return a NotFound result
             if (Conversation == null)
             {
                 return NotFound();
             }
 
-            // Order messages by the SentAt timestamp in ascending order
             Messages = Conversation.Messages.OrderBy(m => m.SentAt).ToList();
 
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostAsync(int chatId)
+        {
+            ChatId = chatId;
+
+            Conversation = await _context.Conversations
+                .Include(c => c.Messages)
+                .ThenInclude(m => m.User)
+                .FirstOrDefaultAsync(c => c.Id == chatId);
+
+            if (Conversation == null)
+            {
+                return NotFound();
+            }
+
+            if (!string.IsNullOrWhiteSpace(NewMessage))
+            {
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var message = new Message
+                {
+                    Content = NewMessage,
+                    ConversationId = chatId,
+                    SentAt = DateTime.UtcNow,
+                    UserId = userId ?? "anonymous"
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+            }
+
+            // Redirect to get refresh messages list.
+            return RedirectToPage(new { chatId = chatId });
         }
     }
 }

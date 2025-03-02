@@ -1,6 +1,9 @@
-﻿@using ChatFileApp.Data
+﻿@using System.Security.Claims
+@using ChatFileApp.Data
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Context
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <div class="bg-[#252837] w-[22rem] h-screen p-4">
     <div class="flex justify-between pb-5">
@@ -31,6 +34,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _conversations = await Context.Conversations.ToListAsync();
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!string.IsNullOrEmpty(currentUserId))
+        {
+            _conversations = await Context.Conversations
+                .Where(c => c.ConversationUsers.Any(cu => cu.UserId == currentUserId))
+                .ToListAsync();
+        }
+        else
+        {
+            _conversations = new List<Conversation>();
+        }
     }
 }

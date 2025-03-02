@@ -1,0 +1,36 @@
+﻿@page "/chat/new"
+@using ChatFileApp.Components.Chat
+@model ChatFileApp.Pages.Chat.New
+
+<div class="flex flex-nowrap">
+    <component type="typeof(ChatContacts)" render-mode="Static"/>
+    <aside class="m-8">
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">New Chat</h1>
+        <form method="post">
+            <div>
+                @if (Model.Users.Any())
+                {
+                    foreach (var user in Model.Users)
+                    {
+                        <div class="flex py-2">
+                            <label class="flex items-center gap-4 p-4 bg-[#303346] rounded-lg cursor-pointer">
+                                <input type="checkbox" name="SelectedUserIds" value="@user.Id" class="">
+                                <h1>
+                                    <span class="text-md font-semibold text-gray-900 dark:text-white">@user.UserName</span>
+                                </h1>
+                            </label>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p>No users found.</p>
+                }
+            </div>
+            <button
+                class="cursor-pointer mt-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg px-4 py-2 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40"
+                type="submit">Create Chat
+            </button>
+        </form>
+    </aside>
+</div>

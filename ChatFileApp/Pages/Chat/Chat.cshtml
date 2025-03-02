@@ -1,7 +1,22 @@
-﻿@page
+﻿@page "/chat/{chatId:int}"
+@using ChatFileApp.Components.Chat
 @model ChatFileApp.Pages.Chat.ChatModel
 @{
     ViewData["Title"] = "Chat";
 }
 
-<h2>@ViewData["Title"]</h2>
+<div class="flex">
+    <component type="typeof(ChatContacts)"
+               render-mode="Static"
+               param-ActiveChatId="@Model.ChatId" />
+    <aside class="m-8">
+        @foreach (var message in Model.Messages)
+        {
+            <component type="@typeof(ChatMessage)"
+                       render-mode="Static"
+                       param-Username="@message.User.UserName"
+                       param-Timestamp="message.SentAt"
+                       param-Message="@message.Content"/>
+        }
+    </aside>
+</div>

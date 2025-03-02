@@ -1,0 +1,36 @@
+﻿@using ChatFileApp.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Context
+
+<div class="bg-[#252837] w-[22rem] h-screen p-4">
+    <div class="flex justify-between pb-5">
+        <h1 class="text-2xl text-white font-bold">Chats</h1>
+        <a href="/chat/new"
+           class="cursor-pointer mt-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg px-4 py-2 focus:outline-none focus:ring focus:ring-blue-300 focus:ring-opacity-40">
+            New Chat
+        </a>
+    </div>
+    @if (_conversations?.Count <= 0 || _conversations == null)
+    {
+        <h1 class="text-white">No chats found.</h1>
+    }
+    else
+    {
+        @foreach (var conversation in _conversations)
+        {
+            <ChatContact Username="@conversation.Name" ChatId="@conversation.Id" IsCurrentChat="@(conversation.Id == ActiveChatId)" />
+        }
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int ActiveChatId { get; set; }
+
+    private List<Conversation>? _conversations = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _conversations = await Context.Conversations.ToListAsync();
+    }
+}

@@ -1,0 +1,19 @@
+﻿@code {
+    [Parameter]
+    public string Username { get; set; }
+    
+    [Parameter]
+    public int ChatId { get; set; }
+        
+    [Parameter]
+    public bool IsCurrentChat { get; set; }
+}
+
+<a href="/chat/@ChatId" class="cursor-pointer">
+    <div class="flex items-center gap-4 p-4 mt-4 rounded-lg @(IsCurrentChat ? "bg-blue-500" : "bg-[#303346]")">
+        <img class="w-8 h-8 rounded-full" src="https://placehold.co/600x600" alt="Profile Picture"/>
+        <h1>
+            <span class="text-md font-semibold text-gray-900 dark:text-white">@Username</span>
+        </h1>
+    </div>
+</a>

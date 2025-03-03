@@ -43,6 +43,7 @@ namespace ChatFileApp.Pages.Chat
             return Page();
         }
 
+        // Optionally remove or retain the OnPostAsync method for fallback if needed.
         public async Task<IActionResult> OnPostAsync(int chatId)
         {
             ChatId = chatId;
@@ -72,7 +73,6 @@ namespace ChatFileApp.Pages.Chat
                 await _context.SaveChangesAsync();
             }
 
-            // Redirect to get refresh messages list.
             return RedirectToPage(new { chatId = chatId });
         }
     }

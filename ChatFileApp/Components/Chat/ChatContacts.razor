@@ -21,7 +21,7 @@
     {
         @foreach (var conversation in _conversations)
         {
-            <ChatContact Username="@conversation.Name" ChatId="@conversation.Id" IsCurrentChat="@(conversation.Id == ActiveChatId)" />
+            <ChatContact Username="@GetDisplayName(conversation)" ChatId="@conversation.Id" IsCurrentChat="@(conversation.Id == ActiveChatId)" />
         }
     }
 </div>
@@ -30,21 +30,50 @@
     [Parameter]
     public int ActiveChatId { get; set; }
 
-    private List<Conversation>? _conversations = new();
+    private List<Conversation> _conversations = new();
+    private string? currentUserId;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        currentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!string.IsNullOrEmpty(currentUserId))
         {
             _conversations = await Context.Conversations
+                .Include(c => c.ConversationUsers)
+                .ThenInclude(cu => cu.User)
                 .Where(c => c.ConversationUsers.Any(cu => cu.UserId == currentUserId))
                 .ToListAsync();
         }
         else
         {
             _conversations = new List<Conversation>();
+        }
+    }
+
+    private string GetDisplayName(Conversation conversation)
+    {
+        if (conversation.Type == ConversationType.Private)
+        {
+            // For private conversations, select the other user's name.
+            var otherUser = conversation.ConversationUsers.FirstOrDefault(cu => cu.UserId != currentUserId)?.User;
+            return otherUser?.UserName ?? "Unknown";
+        }
+        else
+        {
+            // For group chats, join participant names (excluding current user). Trim the result if it is too long.
+            var names = conversation.ConversationUsers
+                .Where(cu => cu.UserId != currentUserId)
+                .Select(cu => cu.User.UserName)
+                .ToList();
+
+            if (!names.Any())
+                return "No participants";
+
+            var displayString = string.Join(", ", names);
+            if (displayString.Length > 20)
+                displayString = displayString.Substring(0, 20) + "...";
+            return displayString;
         }
     }
 }

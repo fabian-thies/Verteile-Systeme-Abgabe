@@ -10,7 +10,7 @@
     <component type="typeof(ChatContacts)"
                render-mode="Static"
                param-ActiveChatId="@Model.ChatId"/>
-    <div class="mx-8 w-full flex flex-col flex-grow justify-between h-screen">
+    <div class="mx-8 w-full flex flex-col flex-grow justify-end h-screen">
         <div class="messages flex flex-nowrap flex-col gap-4 overflow-y-scroll" style="max-height:100%;">
             @foreach (var message in Model.Messages)
             {

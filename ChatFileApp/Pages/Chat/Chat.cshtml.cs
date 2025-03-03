@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ChatFileApp.Pages.Chat
 {
+    [Authorize]
     public class ChatModel : PageModel
     {
         private readonly ApplicationDbContext _context;

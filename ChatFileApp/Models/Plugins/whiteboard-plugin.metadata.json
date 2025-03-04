@@ -1,9 +1,0 @@
-﻿{
-  "Id": "whiteboard-plugin",
-  "Name": "Whiteboard Plugin",
-  "Version": "1.0.0",
-  "Description": "Ein Plugin zum Testen der Ladefunktionalität",
-  "AssemblyPath": "C:\\Users\\lomic\\Downloads\\Verteile-Systeme Abgabe\\ChatFileApp\\Models\\Plugins\\WhiteboardPlugin\\WhiteboardPlugin.dll",
-  "EntryPoint": "WhiteboardPlugin.WhiteboardHandler",
-  "Signature": ""
-}

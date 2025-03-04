@@ -1,9 +1,0 @@
-﻿{
-  "Id": "test-plugin",
-  "Name": "Test Plugin",
-  "Version": "1.0.0",
-  "Description": "Ein Plugin zum Testen der Ladefunktionalität",
-  "AssemblyPath": "C:\\Users\\lomic\\Downloads\\Verteile-Systeme Abgabe\\ChatFileApp\\Models\\Plugins\\TestPlugin\\TestPlugin.dll",
-  "EntryPoint": "TestPlugin.MyTestPlugin",
-  "Signature": ""
-}

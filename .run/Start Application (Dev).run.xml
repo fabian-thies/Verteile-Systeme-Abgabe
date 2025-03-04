@@ -1,7 +1,0 @@
-﻿<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Start Application (Dev)" type="CompoundRunConfigurationType">
-    <toRun name="dotnet-watch" type="RunDotNetWatch" />
-    <toRun name="watch:css" type="js.build_tools.npm" />
-    <method v="2" />
-  </configuration>
-</component>

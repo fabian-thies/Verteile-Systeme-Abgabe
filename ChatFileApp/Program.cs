@@ -37,28 +37,33 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
-app.MapRazorPages()
-    .WithStaticAssets();
-
-app.MapHub<ChatHub>("/chathub");
-app.MapHub<PluginHub>("/pluginhub");
-
 var pluginManager = app.Services.GetRequiredService<PluginManager>();
 await pluginManager.InitializeAsync();
 
-// Register each plugin's static files
+// 2) Explicitly load the Whiteboard plugin assembly
+await pluginManager.LoadPluginAsync("whiteboard-plugin"); 
+// or "Whiteboard", depending on which ID you have in your plugin code/metadata
+
+// 3) Now that the plugin assembly is loaded and appended to ApplicationParts,
+//    call MapRazorPages so that the new pages are recognized
+app.MapRazorPages();
+app.MapStaticAssets(); // or your static assets code
+
+// 4) If needed, also map the plugin static files
 foreach (var kvp in StaticAssetsMappings.PluginStaticMappings)
 {
     var pluginId = kvp.Key;
     var fileProvider = kvp.Value;
 
-    // Here we mount them under e.g. /plugins/<pluginId>/
     app.UseStaticFiles(new StaticFileOptions
     {
         FileProvider = fileProvider,
         RequestPath = $"/plugins/{pluginId}"
     });
 }
+
+// 5) Continue mapping your hubs or anything else
+app.MapHub<ChatHub>("/chathub");
+app.MapHub<PluginHub>("/pluginhub");
 
 app.Run();

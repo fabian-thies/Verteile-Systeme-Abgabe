@@ -1,5 +1,5 @@
 ﻿{
-  "Id": "Whiteboard",
+  "Id": "whiteboard-plugin",
   "Name": "Whiteboard Plugin",
   "Version": "1.0.0",
   "Description": "Ein Plugin zum Testen der Ladefunktionalität",

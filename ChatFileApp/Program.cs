@@ -46,8 +46,19 @@ await pluginManager.LoadPluginAsync("whiteboard-plugin");
 
 // 3) Now that the plugin assembly is loaded and appended to ApplicationParts,
 //    call MapRazorPages so that the new pages are recognized
-app.MapRazorPages();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapRazorPages();
+});
 app.MapStaticAssets(); // or your static assets code
+
+var endpointDataSource = app.Services.GetRequiredService<EndpointDataSource>();
+Console.Write("---");
+foreach (var endpoint in endpointDataSource.Endpoints)
+{
+    Console.WriteLine($"[DEBUG] Endpoint: {endpoint.DisplayName}");
+}
+Console.Write("---");
 
 // 4) If needed, also map the plugin static files
 foreach (var kvp in StaticAssetsMappings.PluginStaticMappings)

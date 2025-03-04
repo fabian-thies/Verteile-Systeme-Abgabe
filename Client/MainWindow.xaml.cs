@@ -10,28 +10,25 @@ namespace Client
         private ChatClient _chatClient;
         private string _username;
 
-        // Constructor receives an already connected ChatClient and the username
+        // We get the same connected ChatClient from the login window
         public MainWindow(ChatClient chatClient, string username)
         {
             InitializeComponent();
             _chatClient = chatClient;
             _username = username;
+
+            // Optionally, start receiving messages right away if not started yet
+            Task.Run(() => _chatClient.ReceiveMessages(ReceiveMessage));
         }
 
+        // Remove or disable this connect button if it re-connects:
         private async void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            // The connection should already be established by the login window.
-            // Falls doch eine erneute Verbindung benötigt wird:
-            if (_chatClient != null && _chatClient.Connect("127.0.0.1", 5000))
-            {
-                ChatMessages.Items.Add("Connected to server.");
-                // Start receiving messages in the background
-                await Task.Run(() => _chatClient.ReceiveMessages(ReceiveMessage));
-            }
-            else
-            {
-                ChatMessages.Items.Add("Failed to connect.");
-            }
+            // If you REALLY want to reconnect, you can do so, 
+            // but you'd have to re-login on the server side too.
+            // Usually you'd do:
+            ChatMessages.Items.Add("Already connected (from LoginWindow).");
+            // or remove the button entirely.
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
@@ -39,16 +36,13 @@ namespace Client
             string msg = MessageInput.Text;
             if (!string.IsNullOrWhiteSpace(msg))
             {
-                // Send chat message without any command prefix (server already knows the username)
                 _chatClient.SendMessage(msg);
                 MessageInput.Text = string.Empty;
             }
         }
 
-        // This method will be called whenever a message arrives from the server
         private void ReceiveMessage(string message)
         {
-            // Update the UI on the main thread
             Dispatcher.Invoke(() =>
             {
                 ChatMessages.Items.Add(message);

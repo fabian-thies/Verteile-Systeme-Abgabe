@@ -19,5 +19,4 @@
       <ProjectReference Include="..\ChatFileApp\ChatFileApp.csproj" />
     </ItemGroup>
 
-
 </Project>

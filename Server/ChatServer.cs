@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using Server.Database;
 
 namespace Server
 {
@@ -37,6 +38,7 @@ namespace Server
                 {
                     _connectedClients.Add(handler);
                 }
+
                 // Handle client in a new task
                 Task.Run(() => handler.HandleClientAsync());
             }
@@ -82,6 +84,7 @@ namespace Server
         private ChatServer _server;
         private NetworkStream _stream;
         private string _username;
+        private bool _isAuthenticated = false; // Track if client is logged in
 
         public ClientHandler(TcpClient client, ChatServer server)
         {
@@ -98,20 +101,84 @@ namespace Server
             byte[] buffer = new byte[1024];
             int bytesRead;
 
-            // Example: simple handshake or login
-            // You might want to implement a proper login protocol here.
-            await _stream.WriteAsync(Encoding.UTF8.GetBytes("Welcome to the chat server!\n"));
+            // Send welcome and authentication instructions
+            await _stream.WriteAsync(Encoding.UTF8.GetBytes("Welcome to the chat server!\n" +
+                                                            "Please login with: /login username password\n" +
+                                                            "Or register with: /register username password\n"));
 
             try
             {
                 while ((bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length)) != 0)
                 {
-                    string message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    
-                    // Here you can parse JSON, custom protocol, etc.
-                    // For demonstration, we just broadcast.
-                    Console.WriteLine($"Received: {message} from client: {_client.Client.RemoteEndPoint}");
-                    _server.BroadcastMessage(message);
+                    string message = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
+                    Console.WriteLine($"Received: {message} from {_client.Client.RemoteEndPoint}");
+
+                    // Process commands for authentication
+                    if (message.StartsWith("/login"))
+                    {
+                        // Expected format: /login username password
+                        string[] parts = message.Split(' ', 3);
+                        if (parts.Length < 3)
+                        {
+                            await _stream.WriteAsync(
+                                Encoding.UTF8.GetBytes("Invalid login command. Use: /login username password\n"));
+                            continue;
+                        }
+
+                        string username = parts[1];
+                        string password = parts[2];
+
+                        if (await AuthHelper.LoginUserAsync(username, password))
+                        {
+                            _isAuthenticated = true;
+                            _username = username;
+                            await _stream.WriteAsync(Encoding.UTF8.GetBytes("Login successful!\n"));
+                        }
+                        else
+                        {
+                            await _stream.WriteAsync(Encoding.UTF8.GetBytes("Login failed. Check your credentials.\n"));
+                        }
+
+                        continue;
+                    }
+                    else if (message.StartsWith("/register"))
+                    {
+                        // Expected format: /register username password
+                        string[] parts = message.Split(' ', 3);
+                        if (parts.Length < 3)
+                        {
+                            await _stream.WriteAsync(
+                                Encoding.UTF8.GetBytes("Invalid register command. Use: /register username password\n"));
+                            continue;
+                        }
+
+                        string username = parts[1];
+                        string password = parts[2];
+
+                        if (await AuthHelper.RegisterUserAsync(username, password))
+                        {
+                            await _stream.WriteAsync(
+                                Encoding.UTF8.GetBytes("Registration successful! Please login using /login.\n"));
+                        }
+                        else
+                        {
+                            await _stream.WriteAsync(
+                                Encoding.UTF8.GetBytes("Registration failed. Username might already exist.\n"));
+                        }
+
+                        continue;
+                    }
+
+                    // If not authenticated, do not process regular messages
+                    if (!_isAuthenticated)
+                    {
+                        await _stream.WriteAsync(Encoding.UTF8.GetBytes("You must be logged in to send messages.\n"));
+                        continue;
+                    }
+
+                    // Process chat messages (prepend username)
+                    string fullMessage = $"{_username}: {message}";
+                    _server.BroadcastMessage(fullMessage);
                 }
             }
             catch (Exception ex)
@@ -133,7 +200,7 @@ namespace Server
         {
             if (_stream != null)
             {
-                byte[] data = Encoding.UTF8.GetBytes(message);
+                byte[] data = Encoding.UTF8.GetBytes(message + "\n");
                 _stream.WriteAsync(data, 0, data.Length);
             }
         }

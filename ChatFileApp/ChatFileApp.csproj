@@ -16,4 +16,23 @@
       <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.3" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Include="Models\Plugins\TestPlugin\test-plugin.metadata.json" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\test-plugin.metadata.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\TestPlugin.deps.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\appsettings.Development.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\appsettings.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\ChatFileApp.deps.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\ChatFileApp.runtimeconfig.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\ChatFileApp.staticwebassets.endpoints.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\ChatFileApp.staticwebassets.runtime.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\Models\Plugins\test-plugin.metadata.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\TestPlugin.deps.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\package-lock.json" />
+      <_ContentIncludedByDefault Remove="Models\Plugins\TestPlugin\Models\Plugins\TestPlugin\package.json" />
+    </ItemGroup>
+
 </Project>

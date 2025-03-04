@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatFileApp", "ChatFileApp\ChatFileApp.csproj", "{020DE8DC-32E4-4E7B-9F48-66FF2C9569A6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestPlugin", "TestPlugin\TestPlugin.csproj", "{58267170-A32B-4100-A863-4B02E384D822}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{020DE8DC-32E4-4E7B-9F48-66FF2C9569A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{020DE8DC-32E4-4E7B-9F48-66FF2C9569A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{020DE8DC-32E4-4E7B-9F48-66FF2C9569A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{58267170-A32B-4100-A863-4B02E384D822}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{58267170-A32B-4100-A863-4B02E384D822}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{58267170-A32B-4100-A863-4B02E384D822}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{58267170-A32B-4100-A863-4B02E384D822}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

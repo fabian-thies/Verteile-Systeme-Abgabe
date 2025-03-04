@@ -1,5 +1,6 @@
 using ChatFileApp.Data;
 using ChatFileApp.Hubs;
+using ChatFileApp.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddRazorPages();
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<PluginManager>();
 
 var app = builder.Build();
 
@@ -40,5 +42,11 @@ app.MapRazorPages()
     .WithStaticAssets();
 
 app.MapHub<ChatHub>("/chathub");
+app.MapHub<PluginHub>("/pluginhub");
+
+var pluginManager = app.Services.GetRequiredService<PluginManager>();
+await pluginManager.InitializeAsync();
+
+var plugin = await pluginManager.LoadPluginAsync("test-plugin");
 
 app.Run();

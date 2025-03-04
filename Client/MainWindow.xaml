@@ -4,19 +4,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Chat Client" Height="500" Width="800">
     <Grid>
-        <!-- Login Section -->
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10">
-            <TextBlock Text="Username:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <TextBox x:Name="UsernameInput" Width="100" Height="25" Margin="0,0,10,0"/>
-            <TextBlock Text="Password:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-            <PasswordBox x:Name="PasswordInput" Width="100" Height="25" Margin="0,0,10,0"/>
-            <Button x:Name="LoginButton" Content="Login" Width="75" Height="25" Click="LoginButton_Click"/>
-        </StackPanel>
-
-        <!-- Chat Section -->
-        <TextBox x:Name="MessageInput" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="600" Height="25" Margin="10,0,0,10" IsEnabled="False"/>
-        <Button x:Name="SendButton" Content="Send" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="75" Height="25" Margin="620,0,0,10" Click="SendButton_Click" IsEnabled="False"/>
-        <Button x:Name="ConnectButton" Content="Connect" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Height="25" Margin="10,50,0,0" Click="ConnectButton_Click"/>
-        <ListBox x:Name="ChatMessages" Margin="10,90,10,40"/>
+        <!-- Chat Section only -->
+        <TextBox x:Name="MessageInput" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="600" Height="25" Margin="10,0,0,10"/>
+        <Button x:Name="SendButton" Content="Send" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="75" Height="25" Margin="620,0,0,10" Click="SendButton_Click"/>
+        <Button x:Name="ConnectButton" Content="Connect" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Height="25" Margin="10,10,0,0" Click="ConnectButton_Click"/>
+        <ListBox x:Name="ChatMessages" Margin="10,50,10,40"/>
     </Grid>
 </Window>

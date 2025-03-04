@@ -47,4 +47,18 @@ app.MapHub<PluginHub>("/pluginhub");
 var pluginManager = app.Services.GetRequiredService<PluginManager>();
 await pluginManager.InitializeAsync();
 
+// Register each plugin's static files
+foreach (var kvp in StaticAssetsMappings.PluginStaticMappings)
+{
+    var pluginId = kvp.Key;
+    var fileProvider = kvp.Value;
+
+    // Here we mount them under e.g. /plugins/<pluginId>/
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = fileProvider,
+        RequestPath = $"/plugins/{pluginId}"
+    });
+}
+
 app.Run();

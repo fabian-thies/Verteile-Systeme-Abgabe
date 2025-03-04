@@ -1,0 +1,121 @@
+﻿@page "/plugins"
+@model ChatFileApp.Pages.PluginsModel
+@{
+    ViewData["Title"] = "Plugin Management";
+}
+
+<div class="container mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Plugin Management</h1>
+    <p class="text-sm text-gray-500 mb-4">User ID: @Model.CurrentUserId</p>
+
+    <!-- Section to list available plugins -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold">Available Plugins</h2>
+        <ul>
+            @foreach(var plugin in Model.AvailablePlugins)
+            {
+                <li class="flex justify-between items-center p-2 border-b">
+                    <div>
+                        <h3 class="font-bold">@plugin.Name (@plugin.Version)</h3>
+                        <p>@plugin.Description</p>
+                    </div>
+                    <div>
+                        <!-- Button to request activation of a plugin -->
+                        <button class="bg-blue-500 text-white px-4 py-2 rounded"
+                                onclick="requestPluginActivation('@plugin.Id')">
+                            Activate Plugin
+                        </button>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+
+    <!-- Section to show incoming plugin activation requests -->
+    <div>
+        <h2 class="text-xl font-semibold">Incoming Plugin Activation Requests</h2>
+        <ul id="incomingRequests" class="space-y-2">
+            <!-- Incoming requests will be added dynamically -->
+        </ul>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/signalr/signalr.js"></script>
+    <script>
+        // Establish a connection to the PluginHub via SignalR
+        const pluginHubConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/pluginhub")
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        // Function to request plugin activation by sending a request to the server
+        function requestPluginActivation(pluginId) {
+            // In a real scenario sollte hier die Zielbenutzer-ID ermittelt werden
+            const targetUserId = prompt("Enter the target user id to send plugin activation request:");
+            if (!targetUserId) return;
+            pluginHubConnection.invoke("RequestPluginActivation", pluginId, targetUserId)
+                .then(() => {
+                    alert("Plugin activation request sent.");
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Failed to send activation request.");
+                });
+        }
+
+        // Function to accept a plugin activation request
+        function acceptPluginActivation(pluginId, requestingUserId, listItemId) {
+            pluginHubConnection.invoke("AcceptPluginActivation", pluginId, requestingUserId)
+                .then(() => {
+                    alert("Plugin activated successfully.");
+                    // Remove the accepted request from the list
+                    document.getElementById(listItemId).remove();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Plugin activation failed.");
+                });
+        }
+
+        // Handle incoming plugin activation requests from the server
+        pluginHubConnection.on("PluginActivationRequested", (requestingUserId, pluginId, pluginName, pluginDescription) => {
+            // Create a new list item to display the incoming request
+            const listItemId = "request-" + Date.now();
+            const li = document.createElement("li");
+            li.id = listItemId;
+            li.className = "p-2 border rounded flex justify-between items-center";
+            li.innerHTML = `
+                <div>
+                    <strong>${pluginName}</strong> (${pluginId}) activation request from user: ${requestingUserId}
+                    <p>${pluginDescription}</p>
+                </div>
+                <div>
+                    <button class="bg-green-500 text-white px-4 py-2 rounded" onclick="acceptPluginActivation('${pluginId}', '${requestingUserId}', '${listItemId}')">
+                        Accept
+                    </button>
+                </div>
+            `;
+            document.getElementById("incomingRequests").appendChild(li);
+        });
+
+        // Handle event when a plugin is activated successfully
+        pluginHubConnection.on("PluginActivated", (pluginId) => {
+            console.log("Plugin activated: " + pluginId);
+            alert("Plugin " + pluginId + " activated successfully.");
+        });
+
+        // Handle event when plugin activation fails
+        pluginHubConnection.on("PluginActivationFailed", (pluginId, errorMessage) => {
+            console.error("Activation failed for plugin " + pluginId + ": " + errorMessage);
+            alert("Activation failed for plugin " + pluginId + ": " + errorMessage);
+        });
+
+        // Start the SignalR connection
+        pluginHubConnection.start()
+            .then(() => {
+                console.log("Connected to PluginHub.");
+            })
+            .catch(err => console.error("Error connecting to PluginHub: ", err));
+    </script>
+}

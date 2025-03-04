@@ -47,6 +47,4 @@ app.MapHub<PluginHub>("/pluginhub");
 var pluginManager = app.Services.GetRequiredService<PluginManager>();
 await pluginManager.InitializeAsync();
 
-var plugin = await pluginManager.LoadPluginAsync("test-plugin");
-
 app.Run();

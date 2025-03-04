@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿// ChatClient.cs
+using System.Net.Sockets;
 using System.Text;
 
 namespace Client
@@ -18,7 +19,6 @@ namespace Client
                 _tcpClient = new TcpClient();
                 _tcpClient.Connect(ip, port);
                 _stream = _tcpClient.GetStream();
-                // You might want to start a reading loop here (e.g. Task.Run(ReceiveMessages)).
                 return true;
             }
             catch
@@ -46,13 +46,12 @@ namespace Client
         {
             byte[] buffer = new byte[1024];
             int bytesRead;
-
             while (true)
             {
                 try
                 {
                     bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length);
-                    if (bytesRead == 0) 
+                    if (bytesRead == 0)
                     {
                         // Server disconnected
                         break;
@@ -62,7 +61,6 @@ namespace Client
                 }
                 catch (Exception)
                 {
-                    // Handle exceptions or disconnections
                     break;
                 }
             }

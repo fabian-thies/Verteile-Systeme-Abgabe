@@ -1,6 +1,8 @@
 ﻿// MainWindow.xaml.cs
+// English comments:
+// The MainWindow receives the ChatClient instance from the LoginWindow.
+// Do not start a new ReceiveMessages loop here – use the one already running.
 using System;
-using System.Threading.Tasks;
 using System.Windows;
 
 namespace Client
@@ -10,25 +12,13 @@ namespace Client
         private ChatClient _chatClient;
         private string _username;
 
-        // We get the same connected ChatClient from the login window
         public MainWindow(ChatClient chatClient, string username)
         {
             InitializeComponent();
             _chatClient = chatClient;
             _username = username;
-
-            // Optionally, start receiving messages right away if not started yet
-            Task.Run(() => _chatClient.ReceiveMessages(ReceiveMessage));
-        }
-
-        // Remove or disable this connect button if it re-connects:
-        private async void ConnectButton_Click(object sender, RoutedEventArgs e)
-        {
-            // If you REALLY want to reconnect, you can do so, 
-            // but you'd have to re-login on the server side too.
-            // Usually you'd do:
-            ChatMessages.Items.Add("Already connected (from LoginWindow).");
-            // or remove the button entirely.
+            // Do NOT start a new ReceiveMessages loop here.
+            // The one from LoginWindow continues to run.
         }
 
         private void SendButton_Click(object sender, RoutedEventArgs e)
@@ -41,6 +31,8 @@ namespace Client
             }
         }
 
+        // Use this method to update the chat window.
+        // It will be called by the single running ReceiveMessages loop.
         private void ReceiveMessage(string message)
         {
             Dispatcher.Invoke(() =>

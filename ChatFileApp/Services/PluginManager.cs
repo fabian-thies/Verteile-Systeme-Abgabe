@@ -23,14 +23,14 @@ namespace ChatFileApp.Services
         public PluginManager(
             ILogger<PluginManager> logger,
             IConfiguration configuration,
-            ApplicationPartManager applicationPartManager,
+            ApplicationPartManager mgrFromRazor,
             IHostEnvironment hostEnvironment,
             IServiceProvider serviceProvider
         )
         {
             _logger = logger;
             _configuration = configuration;
-            _applicationPartManager = applicationPartManager;
+            _applicationPartManager = mgrFromRazor; // same manager from Razor
             _hostEnvironment = hostEnvironment;
             _serviceProvider = serviceProvider;
         }

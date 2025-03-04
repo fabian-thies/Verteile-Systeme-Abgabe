@@ -20,7 +20,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LogoutPath = "/account/logout";
         options.AccessDeniedPath = "/account/login";
     });
-builder.Services.AddRazorPages();
+builder.Services
+    .AddRazorPages()
+    .ConfigureApplicationPartManager(mgr =>
+    {
+        // Store the same manager in DI so our PluginManager can use it
+        builder.Services.AddSingleton(mgr);
+    });
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<PluginManager>();
 

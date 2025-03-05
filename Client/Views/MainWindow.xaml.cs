@@ -5,31 +5,16 @@ namespace Client;
 
 public partial class MainWindow : Window
 {
+    // Use the passed HubConnection instead of creating a new one
     private HubConnection connection;
 
-    public MainWindow()
+    // Modified constructor to accept an existing connection
+    public MainWindow(HubConnection hubConnection)
     {
         InitializeComponent();
-        // Initialize the SignalR connection
-        connection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:5000/chatHub")
-            .Build();
-
+        connection = hubConnection;
         RegisterSignalREvents();
-        ConnectToServer();
-    }
-
-    // Connect to the SignalR server
-    private async void ConnectToServer()
-    {
-        try
-        {
-            await connection.StartAsync();
-        }
-        catch (Exception ex)
-        {
-            MessageBox.Show("Failed to connect to server: " + ex.Message);
-        }
+        // No need to start the connection again since it's already connected in LoginWindow
     }
 
     // Register event handlers for receiving messages

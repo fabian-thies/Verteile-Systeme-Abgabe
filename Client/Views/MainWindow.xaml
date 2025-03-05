@@ -15,7 +15,6 @@
                     <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
                         <TextBlock Text="To (Username): " VerticalAlignment="Center" />
                         <TextBox Name="PrivateTargetTextBox" Width="200" Margin="5,0" />
-                        <Button Content="Send" Click="SendPrivateMessageButton_Click" />
                     </StackPanel>
                     <ListBox Name="PrivateChatListBox" Grid.Row="1" />
                     <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,10,0,0">

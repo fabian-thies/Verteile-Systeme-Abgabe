@@ -9,14 +9,12 @@ public class AuthService : IAuthService
     private readonly string _connectionString;
     private readonly ILogger<AuthService> _logger;
 
-    // English comment: Constructor that retrieves the connection string from configuration and initializes the logger.
     public AuthService(IConfiguration configuration, ILogger<AuthService> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection");
         _logger = logger;
     }
 
-    // English comment: Checks if the provided credentials are valid.
     public async Task<bool> Login(string username, string password)
     {
         _logger.LogInformation("Login attempt for user: {Username}", username);
@@ -24,7 +22,7 @@ public class AuthService : IAuthService
 
         try
         {
-            using (var conn = new NpgsqlConnection(_connectionString))
+            await using (var conn = new NpgsqlConnection(_connectionString))
             {
                 await conn.OpenAsync();
                 _logger.LogDebug("Database connection opened for login");

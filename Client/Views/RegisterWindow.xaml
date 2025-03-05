@@ -1,23 +1,30 @@
 ﻿<Window x:Class="Client.Views.RegisterWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Register" Height="400" Width="400"
+        Title="Register" Height="450" Width="400"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBackgroundBrush}"
-        FontFamily="Segoe UI">
-    <Grid Margin="20">
-        <StackPanel VerticalAlignment="Center">
-            <TextBlock Name="ErrorTextBlock" Foreground="Red" Text="" Margin="0,0,0,10"/>
-            <TextBlock Text="Username:" Margin="0,0,0,5"/>
-            <TextBox Name="UsernameTextBox" Margin="0,0,0,10"/>
-            <TextBlock Text="Password:" Margin="0,0,0,5"/>
-            <PasswordBox Name="PasswordBox" Margin="0,0,0,10"/>
-            <TextBlock Text="Confirm Password:" Margin="0,0,0,5"/>
-            <PasswordBox Name="ConfirmPasswordBox" Margin="0,0,0,10"/>
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Content="Register" Click="RegisterButton_Click"/>
-                <Button Content="Back to Login" Click="BackToLoginButton_Click"/>
+        FontFamily="Segoe UI"
+        WindowStyle="None"
+        AllowsTransparency="True">
+    <Window.Resources>
+        <StaticResource ResourceKey="DropShadowEffect"/>
+    </Window.Resources>
+    <Border Background="White" CornerRadius="8" Padding="20" Effect="{DynamicResource DropShadowEffect}">
+        <Grid>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Name="ErrorTextBlock" Foreground="Red" Text="" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+                <TextBlock Text="Username:" Margin="0,0,0,5"/>
+                <TextBox Name="UsernameTextBox" Margin="0,0,0,10"/>
+                <TextBlock Text="Password:" Margin="0,0,0,5"/>
+                <PasswordBox Name="PasswordBox" Margin="0,0,0,10"/>
+                <TextBlock Text="Confirm Password:" Margin="0,0,0,5"/>
+                <PasswordBox Name="ConfirmPasswordBox" Margin="0,0,0,10"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="Register" Click="RegisterButton_Click"/>
+                    <Button Content="Back to Login" Click="BackToLoginButton_Click"/>
+                </StackPanel>
             </StackPanel>
-        </StackPanel>
-    </Grid>
+        </Grid>
+    </Border>
 </Window>

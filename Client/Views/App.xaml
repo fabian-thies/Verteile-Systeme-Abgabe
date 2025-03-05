@@ -3,11 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              StartupUri="/Views/LoginWindow.xaml">
     <Application.Resources>
-        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#F2F2F2"/>
+        <!-- Modern color palette -->
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FAFAFA"/>
         <SolidColorBrush x:Key="PrimaryBrush" Color="#0078D7"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF4081"/>
+        <SolidColorBrush x:Key="ChatBubbleBackground" Color="#E0E0E0"/>
+        <SolidColorBrush x:Key="ChatBubbleAccent" Color="#DCF8C6"/>
+        
+        <!-- Modern button style -->
         <Style TargetType="Button">
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Padding" Value="10,5"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
             <Setter Property="Foreground" Value="White"/>
@@ -16,26 +22,54 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <!-- English comment: Use a border with rounded corners for modern look -->
+                        <Border Background="{TemplateBinding Background}" CornerRadius="4" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- Modern TextBox and PasswordBox styles -->
         <Style TargetType="TextBox">
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Padding" Value="8"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style TargetType="PasswordBox">
             <Setter Property="Margin" Value="5"/>
-            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Padding" Value="8"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#CCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <Style TargetType="TextBlock">
             <Setter Property="Margin" Value="5"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
         </Style>
+
+        <!-- Style for chat messages (ListBoxItem) -->
+        <Style x:Key="ChatMessageStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Drop shadow effect for a modern card look -->
+        <DropShadowEffect x:Key="DropShadowEffect" Color="Black" BlurRadius="10" Opacity="0.2"/>
     </Application.Resources>
 </Application>

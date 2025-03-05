@@ -47,7 +47,6 @@ public class AuthService : IAuthService
         }
     }
 
-    // English comment: Registers a new user with the provided credentials.
     public async Task<bool> Register(string username, string password)
     {
         _logger.LogInformation("Registration attempt for user: {Username}", username);
@@ -93,7 +92,6 @@ public class AuthService : IAuthService
         }
     }
 
-    // English comment: Computes a SHA256 hash for the provided input string.
     private string ComputeSha256Hash(string rawData)
     {
         using (var sha256Hash = SHA256.Create())

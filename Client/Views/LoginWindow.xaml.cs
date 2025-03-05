@@ -1,7 +1,4 @@
-﻿// LoginWindow.xaml.cs
-// English comment: Handles login functionality and displays error messages within the window.
-
-using System.Windows;
+﻿using System.Windows;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace Client.Views;
@@ -14,7 +11,7 @@ public partial class LoginWindow : Window
     {
         InitializeComponent();
         connection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:5000/chatHub") // Adjust the URL and port as needed
+            .WithUrl("http://localhost:5000/chatHub")
             .Build();
 
         ConnectToServer();

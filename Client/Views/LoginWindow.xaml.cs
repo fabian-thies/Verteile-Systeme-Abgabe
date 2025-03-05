@@ -5,7 +5,7 @@ namespace Client.Views;
 
 public partial class LoginWindow : Window
 {
-    private HubConnection connection;
+    private readonly HubConnection connection;
 
     public LoginWindow()
     {

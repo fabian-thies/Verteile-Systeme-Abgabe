@@ -5,41 +5,36 @@ namespace Client;
 
 public partial class MainWindow : Window
 {
-    // Use the passed HubConnection instead of creating a new one
-    private HubConnection connection;
+    private readonly HubConnection connection;
 
-    // Modified constructor to accept an existing connection
     public MainWindow(HubConnection hubConnection)
     {
         InitializeComponent();
         connection = hubConnection;
         RegisterSignalREvents();
-        // No need to start the connection again since it's already connected in LoginWindow
     }
 
-    // Register event handlers for receiving messages
     private void RegisterSignalREvents()
     {
-        // Event for receiving private messages
-        connection.On<string, string>("ReceivePrivateMessage", (sender, message) =>
-        {
-            Dispatcher.Invoke(() =>
+        connection.On<string, string>("ReceivePrivateMessage",
+            (sender, message) =>
             {
-                PrivateChatListBox.Items.Add($"{sender}: {message}");
+                Dispatcher.Invoke(() => { PrivateChatListBox.Items.Add($"{sender}: {message}"); });
             });
-        });
 
-        // Event for receiving group messages
-        connection.On<string, string>("ReceiveGroupMessage", (sender, message) =>
+        connection.On<string, string>("ReceiveGroupMessage",
+            (sender, message) => { Dispatcher.Invoke(() => { GroupChatListBox.Items.Add($"{sender}: {message}"); }); });
+
+        connection.On<string>("ReceiveSystemMessage", message =>
         {
             Dispatcher.Invoke(() =>
             {
-                GroupChatListBox.Items.Add($"{sender}: {message}");
+                PrivateChatListBox.Items.Add($"[System]: {message}");
+                GroupChatListBox.Items.Add($"[System]: {message}");
             });
         });
     }
 
-    // Send a private message using the specified target username
     private async void SendPrivateMessageButton_Click(object sender, RoutedEventArgs e)
     {
         var targetUser = PrivateTargetTextBox.Text.Trim();
@@ -50,7 +45,6 @@ public partial class MainWindow : Window
         try
         {
             await connection.InvokeAsync("SendPrivateMessage", targetUser, message);
-            // Optionally, add the message to your own chat box
             PrivateChatListBox.Items.Add($"Me to {targetUser}: {message}");
             PrivateMessageTextBox.Clear();
         }
@@ -60,7 +54,6 @@ public partial class MainWindow : Window
         }
     }
 
-    // Join a group chat
     private async void JoinGroupButton_Click(object sender, RoutedEventArgs e)
     {
         var groupName = GroupNameTextBox.Text.Trim();
@@ -78,7 +71,6 @@ public partial class MainWindow : Window
         }
     }
 
-    // Leave a group chat
     private async void LeaveGroupButton_Click(object sender, RoutedEventArgs e)
     {
         var groupName = GroupNameTextBox.Text.Trim();
@@ -96,7 +88,6 @@ public partial class MainWindow : Window
         }
     }
 
-    // Send a message to the currently joined group
     private async void SendGroupMessageButton_Click(object sender, RoutedEventArgs e)
     {
         var groupName = GroupNameTextBox.Text.Trim();
@@ -107,7 +98,6 @@ public partial class MainWindow : Window
         try
         {
             await connection.InvokeAsync("SendGroupMessage", groupName, message);
-            // Optionally, add the message to your own chat box
             GroupChatListBox.Items.Add($"Me in {groupName}: {message}");
             GroupMessageTextBox.Clear();
         }

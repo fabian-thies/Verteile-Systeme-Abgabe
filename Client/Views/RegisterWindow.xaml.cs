@@ -5,7 +5,7 @@ namespace Client.Views;
 
 public partial class RegisterWindow : Window
 {
-    private HubConnection connection;
+    private readonly HubConnection connection;
 
     public RegisterWindow()
     {

@@ -41,12 +41,24 @@ public class WhiteboardWindow : Window
         Height = 600;
         Background = Brushes.White;
 
-        _canvas = new Canvas();
+        _canvas = new Canvas
+        {
+            Focusable = true,
+            Background = Brushes.Transparent
+        };
         Content = _canvas;
 
         _canvas.MouseDown += Canvas_MouseDown;
         _canvas.MouseMove += Canvas_MouseMove;
         _canvas.MouseUp += Canvas_MouseUp;
+
+        this.Loaded += WhiteboardWindow_Loaded;
+    }
+
+    private void WhiteboardWindow_Loaded(object sender, RoutedEventArgs e)
+    {
+        _canvas.Focus();
+        Keyboard.Focus(_canvas);
     }
 
     private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)

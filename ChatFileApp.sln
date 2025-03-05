@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhiteboardPlugin", "WhiteboardPlugin\WhiteboardPlugin.csproj", "{4D7309ED-77A8-47AB-A296-3C8748F4F205}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{2F6A74E0-4886-4287-B03E-78E36947199F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{4D7309ED-77A8-47AB-A296-3C8748F4F205}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D7309ED-77A8-47AB-A296-3C8748F4F205}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4D7309ED-77A8-47AB-A296-3C8748F4F205}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F6A74E0-4886-4287-B03E-78E36947199F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F6A74E0-4886-4287-B03E-78E36947199F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F6A74E0-4886-4287-B03E-78E36947199F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F6A74E0-4886-4287-B03E-78E36947199F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

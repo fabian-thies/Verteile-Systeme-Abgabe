@@ -1,5 +1,6 @@
 ﻿// File: Client/Views/MainWindow.xaml.cs
 using System;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -88,8 +89,12 @@ namespace Client
                             p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
                         if (plugin != null)
                         {
-                            // Cast to concrete type to use the Initialize method with parameters.
-                            ((WhiteboardPlugin)plugin).Initialize(connection, sender, false);
+                            // Attempt to call the extended Initialize(connection, sender, false) via reflection.
+                            var initMethod = plugin.GetType().GetMethod("Initialize", new Type[] { typeof(HubConnection), typeof(string), typeof(bool) });
+                            if (initMethod != null)
+                            {
+                                initMethod.Invoke(plugin, new object[] { connection, sender, false });
+                            }
                             plugin.Execute();
                         }
                         else
@@ -134,9 +139,9 @@ namespace Client
             });
         }
 
+        // --- CHANGED: We now load the plugin dynamically and call it via reflection. ---
         private async void OpenPrivateWhiteboardButton_Click(object sender, RoutedEventArgs e)
         {
-            // English comment: Validate target username for private whiteboard.
             var targetUser = PrivateTargetTextBox.Text.Trim();
             if (string.IsNullOrEmpty(targetUser))
             {
@@ -145,7 +150,17 @@ namespace Client
                 return;
             }
 
-            // English comment: Send a plugin request to the target user.
+            // English comment: First check if the Whiteboard plugin is actually loaded in the Plugins folder.
+            var plugin = GetWhiteboardPlugin();
+            if (plugin == null)
+            {
+                MessageBox.Show("Whiteboard plugin is not loaded. Please load it via the 'Plugins' tab first.", 
+                                "Plugin not found",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // English comment: Send a plugin request to the target user (they can accept and load the plugin).
             try
             {
                 await connection.InvokeAsync("RequestWhiteboardPlugin", targetUser);
@@ -156,13 +171,44 @@ namespace Client
                 return;
             }
 
-            // English comment: Load and execute the whiteboard plugin for the initiating user.
-            var whiteboardPlugin = new WhiteboardPlugin();
-            ((WhiteboardPlugin)whiteboardPlugin).Initialize(connection, targetUser, false);
-            whiteboardPlugin.Execute();
+            // If we already have the plugin, call "Initialize(connection, targetUser, false)" via reflection, then Execute().
+            var initMethod = plugin.GetType().GetMethod("Initialize", new Type[] { typeof(HubConnection), typeof(string), typeof(bool) });
+            if (initMethod != null)
+            {
+                initMethod.Invoke(plugin, new object[] { connection, targetUser, false });
+            }
+            plugin.Execute();
+        }
 
-            // Note: The plugin file is sent later upon receiving a plugin file request.
-        } 
+        private void OpenGroupWhiteboardButton_Click(object sender, RoutedEventArgs e)
+        {
+            var groupName = GroupNameTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(groupName))
+            {
+                MessageBox.Show("Please enter a group name for the group whiteboard.", "Missing Group Name",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // English comment: Check if plugin is loaded.
+            var plugin = GetWhiteboardPlugin();
+            if (plugin == null)
+            {
+                MessageBox.Show("Whiteboard plugin is not loaded. Please load it via the 'Plugins' tab first.",
+                                "Plugin not found",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // English comment: Initialize the plugin in group mode, then execute.
+            var initMethod = plugin.GetType().GetMethod("Initialize", new Type[] { typeof(HubConnection), typeof(string), typeof(bool) });
+            if (initMethod != null)
+            {
+                initMethod.Invoke(plugin, new object[] { connection, groupName, true });
+            }
+            plugin.Execute();
+        }
+        // --- End of changed methods. ---
 
         private async void SendPrivateMessageButton_Click(object sender, RoutedEventArgs e)
         {
@@ -254,21 +300,16 @@ namespace Client
             }
         }
 
-        private void OpenGroupWhiteboardButton_Click(object sender, RoutedEventArgs e)
+        // English comment: Helper method to scan the Plugins folder again for the "Whiteboard" plugin.
+        //                 If found, return it; otherwise return null.
+        private IPlugin? GetWhiteboardPlugin()
         {
-            // English comment: Validate group name for group whiteboard.
-            var groupName = GroupNameTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(groupName))
-            {
-                MessageBox.Show("Please enter a group name for the group whiteboard.", "Missing Group Name",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            // English comment: Create and initialize the whiteboard plugin in group mode.
-            var whiteboardPlugin = new WhiteboardPlugin();
-            whiteboardPlugin.Initialize(connection, groupName, true);
-            whiteboardPlugin.Execute();
+            string pluginDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+            var pluginLogger = loggerFactory.CreateLogger<PluginLoader>();
+            var loader = new PluginLoader(pluginLogger);
+            var allPlugins = loader.LoadPlugins(pluginDirectory);
+            return allPlugins.FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

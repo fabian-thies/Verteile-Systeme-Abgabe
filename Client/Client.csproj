@@ -43,6 +43,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Shared\Shared.csproj" />
+      <ProjectReference Include="..\WhiteboardPlugin\WhiteboardPlugin.csproj" />
     </ItemGroup>
 
 </Project>

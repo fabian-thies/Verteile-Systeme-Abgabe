@@ -107,7 +107,7 @@ public partial class MainWindow : Window
             MessageBox.Show("Error sending group message: " + ex.Message);
         }
     }
-    
+
     private void PrivateMessageTextBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter)
@@ -124,5 +124,41 @@ public partial class MainWindow : Window
             e.Handled = true;
             SendGroupMessageButton_Click(sender, e);
         }
+    }
+
+    // New event handler to open the whiteboard for private chats.
+    private void OpenPrivateWhiteboardButton_Click(object sender, RoutedEventArgs e)
+    {
+        // English comment: Validate target username for private whiteboard.
+        var targetUser = PrivateTargetTextBox.Text.Trim();
+        if (string.IsNullOrEmpty(targetUser))
+        {
+            MessageBox.Show("Please enter a target username for the private whiteboard.", "Missing Target",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // English comment: Create and initialize the whiteboard plugin in private mode.
+        var whiteboardPlugin = new WhiteboardPlugin();
+        whiteboardPlugin.Initialize(connection, targetUser, false);
+        whiteboardPlugin.Execute();
+    }
+
+// New event handler to open the whiteboard for group chats.
+    private void OpenGroupWhiteboardButton_Click(object sender, RoutedEventArgs e)
+    {
+        // English comment: Validate group name for group whiteboard.
+        var groupName = GroupNameTextBox.Text.Trim();
+        if (string.IsNullOrEmpty(groupName))
+        {
+            MessageBox.Show("Please enter a group name for the group whiteboard.", "Missing Group Name",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // English comment: Create and initialize the whiteboard plugin in group mode.
+        var whiteboardPlugin = new WhiteboardPlugin();
+        whiteboardPlugin.Initialize(connection, groupName, true);
+        whiteboardPlugin.Execute();
     }
 }

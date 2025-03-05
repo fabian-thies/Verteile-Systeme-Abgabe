@@ -19,8 +19,10 @@
                     </StackPanel>
                     <ListBox Name="PrivateChatListBox" Grid.Row="1" />
                     <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,10,0,0">
-                        <TextBox Name="PrivateMessageTextBox" Width="600" KeyDown="PrivateMessageTextBox_KeyDown" />
+                        <TextBox Name="PrivateMessageTextBox" Width="500" KeyDown="PrivateMessageTextBox_KeyDown" />
                         <Button Content="Send" Click="SendPrivateMessageButton_Click" Margin="5,0" />
+                        <!-- New button to open the whiteboard in private chat mode -->
+                        <Button Content="Whiteboard" Click="OpenPrivateWhiteboardButton_Click" Margin="5,0" />
                     </StackPanel>
                 </Grid>
             </TabItem>
@@ -40,8 +42,10 @@
                     </StackPanel>
                     <ListBox Name="GroupChatListBox" Grid.Row="1" />
                     <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,10,0,0">
-                        <TextBox Name="GroupMessageTextBox" Width="600" KeyDown="GroupMessageTextBox_KeyDown" />
+                        <TextBox Name="GroupMessageTextBox" Width="500" KeyDown="GroupMessageTextBox_KeyDown" />
                         <Button Content="Send" Click="SendGroupMessageButton_Click" Margin="5,0" />
+                        <!-- New button to open the whiteboard in group chat mode -->
+                        <Button Content="Whiteboard" Click="OpenGroupWhiteboardButton_Click" Margin="5,0" />
                     </StackPanel>
                 </Grid>
             </TabItem>

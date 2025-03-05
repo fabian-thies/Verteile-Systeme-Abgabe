@@ -1,4 +1,5 @@
 ﻿// PluginLoader.cs
+
 using System;
 using System.IO;
 using System.Linq;
@@ -41,8 +42,21 @@ public class PluginLoader
                     // Create a new AssemblyLoadContext for plugin isolation.
                     var alc = new AssemblyLoadContext(Path.GetFileNameWithoutExtension(file), true);
                     var assembly = alc.LoadFromAssemblyPath(Path.GetFullPath(file));
-                    var pluginTypes = assembly.GetTypes()
+
+                    // Log all types found in the assembly.
+                    var allTypes = assembly.GetTypes();
+                    foreach (var type in allTypes)
+                    {
+                        _logger.LogDebug("Found type in assembly {file}: {TypeName}", file, type.FullName);
+                    }
+
+                    var pluginTypes = allTypes
                         .Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsAbstract);
+
+                    foreach (var pluginType in pluginTypes)
+                    {
+                        _logger.LogDebug("Instantiating plugin type: {PluginType}", pluginType.FullName);
+                    }
 
                     return pluginTypes.Select(t => (IPlugin)Activator.CreateInstance(t));
                 }
@@ -58,7 +72,6 @@ public class PluginLoader
         return plugins;
     }
 
-    // Dummy method to verify a plugin file (e.g., via digital signature or checksum).
     private bool VerifyPlugin(string pluginFile)
     {
         _logger.LogInformation("Verifying plugin: {file}", pluginFile);

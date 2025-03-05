@@ -41,10 +41,12 @@ public partial class LoginWindow : Window
             var isAuthenticated = await connection.InvokeAsync<bool>("Login", username, password);
             if (isAuthenticated)
             {
-                // Pass the existing connection to the MainWindow
                 var mainWindow = new MainWindow(connection);
+
+                Application.Current.MainWindow = mainWindow;
+
                 mainWindow.Show();
-                Close();
+                this.Close();
             }
             else
             {

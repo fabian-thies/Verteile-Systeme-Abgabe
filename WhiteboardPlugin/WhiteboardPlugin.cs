@@ -13,11 +13,16 @@ public class WhiteboardPlugin : IPlugin
 
     private WhiteboardWindow _whiteboardWindow;
 
-    // Overloaded Initialize method to accept a SignalR connection for collaborative drawing.
+    // Overloaded Initialize method for collaborative drawing without specific target (broadcast)
     public void Initialize(HubConnection connection)
     {
-        // Initialize the whiteboard window with the provided SignalR connection.
         _whiteboardWindow = new WhiteboardWindow(connection);
+    }
+
+    // Overloaded Initialize method to accept a SignalR connection, a target identifier and mode (true = group, false = private)
+    public void Initialize(HubConnection connection, string target, bool isGroup)
+    {
+        _whiteboardWindow = new WhiteboardWindow(connection, target, isGroup);
     }
 
     // Default Initialize method for non-collaborative mode.
@@ -30,8 +35,7 @@ public class WhiteboardPlugin : IPlugin
     {
         if (_whiteboardWindow == null)
         {
-            // For collaborative mode, pass the existing HubConnection if available.
-            // Otherwise, default to non-collaborative mode.
+            // Falls keine Verbindung oder kein Ziel übergeben wurde, nutze den Broadcast-Modus.
             Initialize();
         }
 
@@ -46,11 +50,22 @@ public class WhiteboardWindow : Window
     private Point _previousPoint;
     private readonly Canvas _canvas;
     private readonly HubConnection _connection;
+    private readonly string _target;
+    private readonly bool _isGroupMode;
 
-    // Constructor accepting an optional SignalR connection.
+    // Constructor for non-collaborative or broadcast mode.
     public WhiteboardWindow(HubConnection connection)
+        : this(connection, null, false)
+    {
+    }
+
+    // Constructor for collaborative mode with target identifier.
+    public WhiteboardWindow(HubConnection connection, string target, bool isGroup)
     {
         _connection = connection;
+        _target = target;
+        _isGroupMode = isGroup;
+
         Title = "Whiteboard";
         Width = 800;
         Height = 600;
@@ -85,7 +100,6 @@ public class WhiteboardWindow : Window
 
     private void WhiteboardWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        // Set focus to the canvas to capture input events.
         _canvas.Focus();
         Keyboard.Focus(_canvas);
     }
@@ -105,13 +119,22 @@ public class WhiteboardWindow : Window
         {
             Point currentPoint = e.GetPosition(_canvas);
 
-            // Draw the line locally on the canvas.
+            // Draw the line locally.
             DrawLine(_previousPoint.X, _previousPoint.Y, currentPoint.X, currentPoint.Y);
 
-            // Send the drawing data to the server for collaborative drawing.
+            // Send drawing data to server if a connection exists.
             if (_connection != null)
             {
-                _connection.InvokeAsync("SendWhiteboardLine", _previousPoint.X, _previousPoint.Y, currentPoint.X, currentPoint.Y);
+                if (!string.IsNullOrEmpty(_target))
+                {
+                    // Send drawing data to a specific target (group or private).
+                    _connection.InvokeAsync("SendWhiteboardLine", _target, _isGroupMode, _previousPoint.X, _previousPoint.Y, currentPoint.X, currentPoint.Y);
+                }
+                else
+                {
+                    // Broadcast to all clients.
+                    _connection.InvokeAsync("SendWhiteboardLine", _previousPoint.X, _previousPoint.Y, currentPoint.X, currentPoint.Y);
+                }
             }
 
             _previousPoint = currentPoint;
@@ -123,7 +146,7 @@ public class WhiteboardWindow : Window
         _isDrawing = false;
     }
 
-    // Draws a line on the canvas.
+    // Draw a line on the canvas.
     private void DrawLine(double x1, double y1, double x2, double y2)
     {
         Line line = new Line

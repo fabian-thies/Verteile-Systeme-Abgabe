@@ -1,5 +1,4 @@
-﻿// ChatHub.cs
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using Server.Services;
 using System.Collections.Concurrent;
 
@@ -25,7 +24,6 @@ namespace Server.Hubs
             {
                 _userConnections[Context.ConnectionId] = username;
                 await Groups.AddToGroupAsync(Context.ConnectionId, username);
-
                 await Clients.All.SendAsync("ReceiveSystemMessage", $"{username} has logged in.");
             }
             return isAuthenticated;
@@ -56,7 +54,6 @@ namespace Server.Hubs
 
             _logger.LogInformation("{User} joining group {GroupName}", username, groupName);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-
             await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]", $"{username} has joined the group {groupName}.");
         }
 
@@ -71,7 +68,6 @@ namespace Server.Hubs
 
             _logger.LogInformation("{User} leaving group {GroupName}", username, groupName);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
-
             await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]", $"{username} has left the group {groupName}.");
         }
 
@@ -84,12 +80,18 @@ namespace Server.Hubs
             }
         }
 
-        // New method to handle whiteboard line drawing events.
+        // Overloaded method to handle whiteboard line drawing with target (group or private).
+        public async Task SendWhiteboardLine(string target, bool isGroup, double x1, double y1, double x2, double y2)
+        {
+            _logger.LogInformation("Whiteboard line drawn for target {target} (isGroup: {isGroup}): ({x1}, {y1}) to ({x2}, {y2})", target, isGroup, x1, y1, x2, y2);
+            // Send only to the specified group or private user's group.
+            await Clients.Group(target).SendAsync("ReceiveWhiteboardLine", x1, y1, x2, y2);
+        }
+
+        // Overloaded method for broadcast mode (no target specified).
         public async Task SendWhiteboardLine(double x1, double y1, double x2, double y2)
         {
-            // Optionally add security or validation checks here.
-            _logger.LogInformation("Whiteboard line drawn: ({x1}, {y1}) to ({x2}, {y2})", x1, y1, x2, y2);
-            // Broadcast the whiteboard line to all clients.
+            _logger.LogInformation("Whiteboard line drawn (broadcast): ({x1}, {y1}) to ({x2}, {y2})", x1, y1, x2, y2);
             await Clients.All.SendAsync("ReceiveWhiteboardLine", x1, y1, x2, y2);
         }
 

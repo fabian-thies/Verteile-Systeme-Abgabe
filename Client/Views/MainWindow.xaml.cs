@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Input;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace Client;
@@ -104,6 +105,24 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             MessageBox.Show("Error sending group message: " + ex.Message);
+        }
+    }
+    
+    private void PrivateMessageTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            SendPrivateMessageButton_Click(sender, e);
+        }
+    }
+
+    private void GroupMessageTextBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            SendGroupMessageButton_Click(sender, e);
         }
     }
 }

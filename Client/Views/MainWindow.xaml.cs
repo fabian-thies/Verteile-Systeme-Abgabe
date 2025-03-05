@@ -1,4 +1,8 @@
-﻿using System;
+﻿// MainWindow.xaml.cs
+// This version stores the loaded plugins in _currentlyLoadedPlugins and checks them
+// when the user clicks the "Whiteboard" buttons.
+
+using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -23,18 +27,30 @@ namespace Client
             RegisterSignalREvents();
         }
 
+        // This method is called (from PluginManager) after the user loads plugins.
+        public void UpdateLoadedPlugins(IPlugin[] currentlyLoaded)
+        {
+            _currentlyLoadedPlugins = currentlyLoaded ?? Array.Empty<IPlugin>();
+        }
+
         private void RegisterSignalREvents()
         {
             _connection.On<string, string>("ReceivePrivateMessage",
                 (sender, message) =>
                 {
-                    Dispatcher.Invoke(() => { PrivateChatListBox.Items.Add($"{sender}: {message}"); });
+                    Dispatcher.Invoke(() =>
+                    {
+                        PrivateChatListBox.Items.Add($"{sender}: {message}");
+                    });
                 });
 
             _connection.On<string, string>("ReceiveGroupMessage",
                 (sender, message) =>
                 {
-                    Dispatcher.Invoke(() => { GroupChatListBox.Items.Add($"{sender}: {message}"); });
+                    Dispatcher.Invoke(() =>
+                    {
+                        GroupChatListBox.Items.Add($"{sender}: {message}");
+                    });
                 });
 
             _connection.On<string>("ReceiveSystemMessage", message =>
@@ -46,10 +62,9 @@ namespace Client
                 });
             });
 
-            // Removed automatic loading after plugin request
+            // For whiteboard invites, we only show a message, not auto-load the plugin
             _connection.On<string>("ReceiveWhiteboardPluginRequest", requester =>
             {
-                // English comment: Show a hint only, do nothing automatically
                 Dispatcher.Invoke(() =>
                 {
                     MessageBox.Show(
@@ -61,25 +76,20 @@ namespace Client
                 });
             });
 
-            // Removed automatic instantiation in `ReceivePluginFile`
+            // If a plugin file is sent, save it locally (user must load it manually later)
             _connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
             {
                 Dispatcher.Invoke(() =>
                 {
                     try
                     {
-                        // English comment: We save the DLL locally but do not load it automatically
                         byte[] pluginBytes = Convert.FromBase64String(base64Content);
-
-                        string receivedDir = Path.Combine(
-                            AppDomain.CurrentDomain.BaseDirectory,
-                            "ReceivedPlugins");
+                        string receivedDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ReceivedPlugins");
 
                         if (!Directory.Exists(receivedDir))
                             Directory.CreateDirectory(receivedDir);
 
-                        string pluginFilePath =
-                            Path.Combine(receivedDir, "WhiteboardPlugin.dll");
+                        string pluginFilePath = Path.Combine(receivedDir, "WhiteboardPlugin.dll");
                         File.WriteAllBytes(pluginFilePath, pluginBytes);
 
                         MessageBox.Show(
@@ -100,20 +110,18 @@ namespace Client
                 });
             });
 
-            // Still possible: "ReceivePluginFileRequest"
+            // Request to send your local plugin file to someone else
             _connection.On<string>("ReceivePluginFileRequest", (targetUser) =>
             {
                 Dispatcher.Invoke(async () =>
                 {
                     try
                     {
-                        // English comment: We are sending the plugin file if we have it locally
                         string pluginPath = Path.Combine(
                             AppDomain.CurrentDomain.BaseDirectory,
                             "Plugins",
                             "WhiteboardPlugin.dll"
                         );
-
                         if (File.Exists(pluginPath))
                         {
                             byte[] pluginBytes = File.ReadAllBytes(pluginPath);
@@ -134,21 +142,21 @@ namespace Client
             });
         }
 
-        // ---------------------------------------------------
+        // ------------------------------
         // Private Whiteboard
-        // ---------------------------------------------------
+        // ------------------------------
         private async void OpenPrivateWhiteboardButton_Click(object sender, RoutedEventArgs e)
         {
             var targetUser = PrivateTargetTextBox.Text.Trim();
             if (string.IsNullOrEmpty(targetUser))
             {
                 MessageBox.Show("Please enter a target username for the private whiteboard.",
-                                "Missing Target",
-                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                    "Missing Target",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // English comment: Check if the Whiteboard plugin is already loaded in the Plugin Manager
+            // Check if the Whiteboard plugin is already loaded
             var plugin = _currentlyLoadedPlugins
                 .FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
 
@@ -163,7 +171,7 @@ namespace Client
                 return;
             }
 
-            // Optional: invite the other user
+            // Optional: invite the other user to get the plugin
             try
             {
                 await _connection.InvokeAsync("RequestWhiteboardPlugin", targetUser);
@@ -174,8 +182,7 @@ namespace Client
                 return;
             }
 
-            // Because there's no reference to WhiteboardPlugin, we use reflection for the custom Initialize method
-            // Then we can call plugin.Execute() which is part of the IPlugin interface.
+            // Call the advanced Initialize method on the Whiteboard plugin
             var initMethod = plugin.GetType().GetMethod(
                 "Initialize",
                 new[] { typeof(HubConnection), typeof(string), typeof(bool) }
@@ -185,12 +192,13 @@ namespace Client
                 initMethod.Invoke(plugin, new object[] { _connection, targetUser, false });
             }
 
+            // Then execute to open the window
             plugin.Execute();
         }
 
-        // ---------------------------------------------------
+        // ------------------------------
         // Group Whiteboard
-        // ---------------------------------------------------
+        // ------------------------------
         private void OpenGroupWhiteboardButton_Click(object sender, RoutedEventArgs e)
         {
             var groupName = GroupNameTextBox.Text.Trim();
@@ -217,7 +225,7 @@ namespace Client
                 return;
             }
 
-            // Reflection to call Initialize(_connection, groupName, true)
+            // Initialize with group mode = true
             var initMethod = plugin.GetType().GetMethod(
                 "Initialize",
                 new[] { typeof(HubConnection), typeof(string), typeof(bool) }
@@ -228,15 +236,6 @@ namespace Client
             }
 
             plugin.Execute();
-        }
-
-        // ---------------------------------------------------
-        // Example method: the PluginManager calls this to update
-        // the list of manually loaded plugins.
-        // ---------------------------------------------------
-        public void UpdateLoadedPlugins(IPlugin[] currentlyLoaded)
-        {
-            _currentlyLoadedPlugins = currentlyLoaded;
         }
 
         // ---------------------------------------------------

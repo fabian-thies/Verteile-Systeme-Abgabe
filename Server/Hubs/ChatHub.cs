@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿// File: Server/Hubs/ChatHub.cs
+using Microsoft.AspNetCore.SignalR;
 using Server.Services;
 using System.Collections.Concurrent;
 
@@ -101,7 +102,7 @@ namespace Server.Hubs
             }
         }
 
-// Method for sending the plugin file content (as Base64 string) to the target user.
+        // Method for sending the plugin file content (as Base64 string) to the target user.
         public async Task SendPluginFile(string targetUser, string base64PluginContent)
         {
             if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
@@ -111,6 +112,16 @@ namespace Server.Hubs
             }
         }
 
+        // New method: Forwards plugin file requests from a client (which does not have the plugin)
+        // to the client that owns the plugin.
+        public async Task RequestPluginFile(string requester)
+        {
+            if (_userConnections.TryGetValue(Context.ConnectionId, out var requestingUser))
+            {
+                // Forward the request to the group of the requester (plugin owner)
+                await Clients.Group(requester).SendAsync("ReceivePluginFileRequest", requestingUser);
+            }
+        }
 
         public override async Task OnDisconnectedAsync(Exception exception)
         {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿// File: Client/Views/MainWindow.xaml.cs
+using System;
 using System.Linq;
 using System.Windows;
 using System.Windows.Input;
@@ -23,18 +24,20 @@ namespace Client
             connection.On<string, string>("ReceivePrivateMessage",
                 (sender, message) =>
                 {
-                    // Explicitly create an Action to remove ambiguity
+                    // English comment: Add private message to list.
                     Dispatcher.Invoke(new Action(() => { PrivateChatListBox.Items.Add($"{sender}: {message}"); }));
                 });
 
             connection.On<string, string>("ReceiveGroupMessage",
                 (sender, message) =>
                 {
+                    // English comment: Add group message to list.
                     Dispatcher.Invoke(new Action(() => { GroupChatListBox.Items.Add($"{sender}: {message}"); }));
                 });
 
             connection.On<string>("ReceiveSystemMessage", message =>
             {
+                // English comment: Display system message.
                 Dispatcher.Invoke(new Action(() =>
                 {
                     PrivateChatListBox.Items.Add($"[System]: {message}");
@@ -42,7 +45,7 @@ namespace Client
                 }));
             });
 
-            // Neues Event: Empfang einer Whiteboard-Plugin-Anfrage.
+            // New event: Handle whiteboard plugin request.
             connection.On<string>("ReceiveWhiteboardPluginRequest", requester =>
             {
                 Dispatcher.Invoke(new Action(() =>
@@ -55,37 +58,37 @@ namespace Client
 
                     if (result == MessageBoxResult.Yes)
                     {
-                        // Hier rufen wir den Hub-Aufruf zum Anfordern der Plugin-Datei auf.
+                        // Request the plugin file from the plugin owner.
                         connection.InvokeAsync("RequestPluginFile", requester);
                     }
                 }));
             });
 
-            // Neues Event: Empfang der Plugin-Datei (Base64-kodiert).
+            // New event: Receive plugin file and load it.
             connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
             {
                 Dispatcher.Invoke(new Action(() =>
                 {
                     try
                     {
-                        // Base64 zurück in Bytes konvertieren.
+                        // Convert Base64 back to bytes.
                         byte[] pluginBytes = Convert.FromBase64String(base64Content);
 
-                        // Plugin-DLL an einem temporären Ort speichern.
+                        // Save the plugin DLL to a temporary location.
                         string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WhiteboardPlugin.dll");
                         System.IO.File.WriteAllBytes(tempPath, pluginBytes);
 
-                        // Plugin via PluginLoader laden.
+                        // Load the plugin via PluginLoader.
                         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
                         var pluginLogger = loggerFactory.CreateLogger<PluginLoader>();
                         var loader = new PluginLoader(pluginLogger);
                         var plugins = loader.LoadPlugins(System.IO.Path.GetDirectoryName(tempPath));
-                        // Suche nach dem Plugin "Whiteboard" (Groß-/Kleinschreibung ignorieren)
+                        // Find the "Whiteboard" plugin (case-insensitive).
                         var plugin = plugins.FirstOrDefault(p =>
                             p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
                         if (plugin != null)
                         {
-                            // Da Initialize in IPlugin parameterlos ist, casten wir in den konkreten Typ.
+                            // Cast to concrete type to use the Initialize method with parameters.
                             ((WhiteboardPlugin)plugin).Initialize(connection, sender, false);
                             plugin.Execute();
                         }
@@ -102,11 +105,38 @@ namespace Client
                     }
                 }));
             });
+
+            // New event: Receive request to send the plugin file.
+            connection.On<string>("ReceivePluginFileRequest", (targetUser) =>
+            {
+                Dispatcher.Invoke(async () =>
+                {
+                    try
+                    {
+                        // English comment: Read plugin file from disk and send to target user.
+                        string pluginPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", "WhiteboardPlugin.dll");
+                        if (System.IO.File.Exists(pluginPath))
+                        {
+                            byte[] pluginBytes = System.IO.File.ReadAllBytes(pluginPath);
+                            string base64Content = Convert.ToBase64String(pluginBytes);
+                            await connection.InvokeAsync("SendPluginFile", targetUser, base64Content);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Plugin file not found.", "File Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("Error sending plugin file: " + ex.Message);
+                    }
+                });
+            });
         }
 
         private async void OpenPrivateWhiteboardButton_Click(object sender, RoutedEventArgs e)
         {
-            // Validate target username for private whiteboard.
+            // English comment: Validate target username for private whiteboard.
             var targetUser = PrivateTargetTextBox.Text.Trim();
             if (string.IsNullOrEmpty(targetUser))
             {
@@ -115,7 +145,7 @@ namespace Client
                 return;
             }
 
-            // Sende eine Plugin-Anfrage an den Ziel-User.
+            // English comment: Send a plugin request to the target user.
             try
             {
                 await connection.InvokeAsync("RequestWhiteboardPlugin", targetUser);
@@ -126,35 +156,13 @@ namespace Client
                 return;
             }
 
-            // Der initiierende User lädt das Plugin auf seiner Seite.
+            // English comment: Load and execute the whiteboard plugin for the initiating user.
             var whiteboardPlugin = new WhiteboardPlugin();
-            // Da Initialize mit Parametern hier nicht über das Interface aufrufbar ist,
-            // casten wir in den konkreten Typ.
             ((WhiteboardPlugin)whiteboardPlugin).Initialize(connection, targetUser, false);
             whiteboardPlugin.Execute();
 
-            // Zusätzlich: Sende die Plugin-Datei an den Ziel-User.
-            try
-            {
-                // Plugin-DLL aus einem bekannten Verzeichnis lesen.
-                string pluginPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins",
-                    "WhiteboardPlugin.dll");
-                if (System.IO.File.Exists(pluginPath))
-                {
-                    byte[] pluginBytes = System.IO.File.ReadAllBytes(pluginPath);
-                    string base64Content = Convert.ToBase64String(pluginBytes);
-                    await connection.InvokeAsync("SendPluginFile", targetUser, base64Content);
-                }
-                else
-                {
-                    MessageBox.Show("Plugin file not found.", "File Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error sending plugin file: " + ex.Message);
-            }
-        }
+            // Note: The plugin file is sent later upon receiving a plugin file request.
+        } 
 
         private async void SendPrivateMessageButton_Click(object sender, RoutedEventArgs e)
         {

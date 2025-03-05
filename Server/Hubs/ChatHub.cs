@@ -92,6 +92,26 @@ namespace Server.Hubs
             await Clients.All.SendAsync("ReceiveWhiteboardLine", x1, y1, x2, y2);
         }
 
+        public async Task RequestWhiteboardPlugin(string targetUser)
+        {
+            if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
+            {
+                _logger.LogInformation("User {Sender} is requesting to send the whiteboard plugin to {TargetUser}.", sender, targetUser);
+                await Clients.Group(targetUser).SendAsync("ReceiveWhiteboardPluginRequest", sender);
+            }
+        }
+
+// Method for sending the plugin file content (as Base64 string) to the target user.
+        public async Task SendPluginFile(string targetUser, string base64PluginContent)
+        {
+            if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
+            {
+                _logger.LogInformation("Sending plugin file from {Sender} to {TargetUser}.", sender, targetUser);
+                await Clients.Group(targetUser).SendAsync("ReceivePluginFile", sender, base64PluginContent);
+            }
+        }
+
+
         public override async Task OnDisconnectedAsync(Exception exception)
         {
             if (_userConnections.TryRemove(Context.ConnectionId, out var username))

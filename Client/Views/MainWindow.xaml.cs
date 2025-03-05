@@ -1,5 +1,4 @@
-﻿// File: Client/Views/MainWindow.xaml.cs
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -11,124 +10,120 @@ namespace Client
 {
     public partial class MainWindow : Window
     {
-        private readonly HubConnection connection;
+        private readonly HubConnection _connection;
+
+        // We track which plugins have been manually loaded so that
+        // we can check at "Whiteboard" button clicks whether the plugin is ready.
+        private IPlugin[] _currentlyLoadedPlugins = Array.Empty<IPlugin>();
 
         public MainWindow(HubConnection hubConnection)
         {
             InitializeComponent();
-            connection = hubConnection;
+            _connection = hubConnection;
             RegisterSignalREvents();
         }
 
         private void RegisterSignalREvents()
         {
-            connection.On<string, string>("ReceivePrivateMessage",
+            _connection.On<string, string>("ReceivePrivateMessage",
                 (sender, message) =>
                 {
-                    // English comment: Add private message to list.
-                    Dispatcher.Invoke(new Action(() => { PrivateChatListBox.Items.Add($"{sender}: {message}"); }));
+                    Dispatcher.Invoke(() => { PrivateChatListBox.Items.Add($"{sender}: {message}"); });
                 });
 
-            connection.On<string, string>("ReceiveGroupMessage",
+            _connection.On<string, string>("ReceiveGroupMessage",
                 (sender, message) =>
                 {
-                    // English comment: Add group message to list.
-                    Dispatcher.Invoke(new Action(() => { GroupChatListBox.Items.Add($"{sender}: {message}"); }));
+                    Dispatcher.Invoke(() => { GroupChatListBox.Items.Add($"{sender}: {message}"); });
                 });
 
-            connection.On<string>("ReceiveSystemMessage", message =>
+            _connection.On<string>("ReceiveSystemMessage", message =>
             {
-                // English comment: Display system message.
-                Dispatcher.Invoke(new Action(() =>
+                Dispatcher.Invoke(() =>
                 {
                     PrivateChatListBox.Items.Add($"[System]: {message}");
                     GroupChatListBox.Items.Add($"[System]: {message}");
-                }));
+                });
             });
 
-            // New event: Handle whiteboard plugin request.
-            connection.On<string>("ReceiveWhiteboardPluginRequest", requester =>
+            // Removed automatic loading after plugin request
+            _connection.On<string>("ReceiveWhiteboardPluginRequest", requester =>
             {
-                Dispatcher.Invoke(new Action(() =>
+                // English comment: Show a hint only, do nothing automatically
+                Dispatcher.Invoke(() =>
                 {
-                    var result = MessageBox.Show(
-                        $"{requester} invites you to join a whiteboard session and offers you the plugin. Do you want to install it?",
+                    MessageBox.Show(
+                        $"{requester} invites you to join a whiteboard session.\n" +
+                        "They can send you the plugin file. Once you receive it, place it into your 'Plugins' folder and load it manually from the Plugin Manager.",
                         "Whiteboard Plugin Request",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Question);
-
-                    if (result == MessageBoxResult.Yes)
-                    {
-                        // Request the plugin file from the plugin owner.
-                        connection.InvokeAsync("RequestPluginFile", requester);
-                    }
-                }));
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                });
             });
 
-            // New event: Receive plugin file and load it.
-            connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
+            // Removed automatic instantiation in `ReceivePluginFile`
+            _connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
             {
-                Dispatcher.Invoke(new Action(() =>
+                Dispatcher.Invoke(() =>
                 {
                     try
                     {
-                        // Convert Base64 back to bytes.
+                        // English comment: We save the DLL locally but do not load it automatically
                         byte[] pluginBytes = Convert.FromBase64String(base64Content);
 
-                        // Save the plugin DLL to a temporary location.
-                        string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "WhiteboardPlugin.dll");
-                        System.IO.File.WriteAllBytes(tempPath, pluginBytes);
+                        string receivedDir = Path.Combine(
+                            AppDomain.CurrentDomain.BaseDirectory,
+                            "ReceivedPlugins");
 
-                        // Load the plugin via PluginLoader.
-                        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-                        var pluginLogger = loggerFactory.CreateLogger<PluginLoader>();
-                        var loader = new PluginLoader(pluginLogger);
-                        var plugins = loader.LoadPlugins(System.IO.Path.GetDirectoryName(tempPath));
-                        // Find the "Whiteboard" plugin (case-insensitive).
-                        var plugin = plugins.FirstOrDefault(p =>
-                            p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
-                        if (plugin != null)
-                        {
-                            // Attempt to call the extended Initialize(connection, sender, false) via reflection.
-                            var initMethod = plugin.GetType().GetMethod("Initialize", new Type[] { typeof(HubConnection), typeof(string), typeof(bool) });
-                            if (initMethod != null)
-                            {
-                                initMethod.Invoke(plugin, new object[] { connection, sender, false });
-                            }
-                            plugin.Execute();
-                        }
-                        else
-                        {
-                            MessageBox.Show("Whiteboard plugin could not be loaded.", "Plugin Error",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
+                        if (!Directory.Exists(receivedDir))
+                            Directory.CreateDirectory(receivedDir);
+
+                        string pluginFilePath =
+                            Path.Combine(receivedDir, "WhiteboardPlugin.dll");
+                        File.WriteAllBytes(pluginFilePath, pluginBytes);
+
+                        MessageBox.Show(
+                            "A Whiteboard plugin file has been received and saved to:\n\n"
+                            + pluginFilePath
+                            + "\n\nPlease copy this DLL into your 'Plugins' folder and load it via the Plugin Manager if you want to use it.",
+                            "Plugin Received",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information
+                        );
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Error processing plugin file: " + ex.Message, "Plugin Error",
+                        MessageBox.Show("Error saving plugin file: " + ex.Message,
+                            "Plugin Error",
                             MessageBoxButton.OK, MessageBoxImage.Error);
                     }
-                }));
+                });
             });
 
-            // New event: Receive request to send the plugin file.
-            connection.On<string>("ReceivePluginFileRequest", (targetUser) =>
+            // Still possible: "ReceivePluginFileRequest"
+            _connection.On<string>("ReceivePluginFileRequest", (targetUser) =>
             {
                 Dispatcher.Invoke(async () =>
                 {
                     try
                     {
-                        // English comment: Read plugin file from disk and send to target user.
-                        string pluginPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", "WhiteboardPlugin.dll");
-                        if (System.IO.File.Exists(pluginPath))
+                        // English comment: We are sending the plugin file if we have it locally
+                        string pluginPath = Path.Combine(
+                            AppDomain.CurrentDomain.BaseDirectory,
+                            "Plugins",
+                            "WhiteboardPlugin.dll"
+                        );
+
+                        if (File.Exists(pluginPath))
                         {
-                            byte[] pluginBytes = System.IO.File.ReadAllBytes(pluginPath);
+                            byte[] pluginBytes = File.ReadAllBytes(pluginPath);
                             string base64Content = Convert.ToBase64String(pluginBytes);
-                            await connection.InvokeAsync("SendPluginFile", targetUser, base64Content);
+                            await _connection.InvokeAsync("SendPluginFile", targetUser, base64Content);
                         }
                         else
                         {
-                            MessageBox.Show("Plugin file not found.", "File Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Plugin file not found.", "File Error",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                     catch (Exception ex)
@@ -139,31 +134,39 @@ namespace Client
             });
         }
 
-        // --- CHANGED: We now load the plugin dynamically and call it via reflection. ---
+        // ---------------------------------------------------
+        // Private Whiteboard
+        // ---------------------------------------------------
         private async void OpenPrivateWhiteboardButton_Click(object sender, RoutedEventArgs e)
         {
             var targetUser = PrivateTargetTextBox.Text.Trim();
             if (string.IsNullOrEmpty(targetUser))
             {
-                MessageBox.Show("Please enter a target username for the private whiteboard.", "Missing Target",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            // English comment: First check if the Whiteboard plugin is actually loaded in the Plugins folder.
-            var plugin = GetWhiteboardPlugin();
-            if (plugin == null)
-            {
-                MessageBox.Show("Whiteboard plugin is not loaded. Please load it via the 'Plugins' tab first.", 
-                                "Plugin not found",
+                MessageBox.Show("Please enter a target username for the private whiteboard.",
+                                "Missing Target",
                                 MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // English comment: Send a plugin request to the target user (they can accept and load the plugin).
+            // English comment: Check if the Whiteboard plugin is already loaded in the Plugin Manager
+            var plugin = _currentlyLoadedPlugins
+                .FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
+
+            if (plugin == null)
+            {
+                MessageBox.Show("Whiteboard plugin is NOT loaded.\n" +
+                                "Please go to the 'Plugins' tab, load the plugin manually,\n" +
+                                "and then try again.",
+                                "Plugin not found",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                return;
+            }
+
+            // Optional: invite the other user
             try
             {
-                await connection.InvokeAsync("RequestWhiteboardPlugin", targetUser);
+                await _connection.InvokeAsync("RequestWhiteboardPlugin", targetUser);
             }
             catch (Exception ex)
             {
@@ -171,45 +174,74 @@ namespace Client
                 return;
             }
 
-            // If we already have the plugin, call "Initialize(connection, targetUser, false)" via reflection, then Execute().
-            var initMethod = plugin.GetType().GetMethod("Initialize", new Type[] { typeof(HubConnection), typeof(string), typeof(bool) });
+            // Because there's no reference to WhiteboardPlugin, we use reflection for the custom Initialize method
+            // Then we can call plugin.Execute() which is part of the IPlugin interface.
+            var initMethod = plugin.GetType().GetMethod(
+                "Initialize",
+                new[] { typeof(HubConnection), typeof(string), typeof(bool) }
+            );
             if (initMethod != null)
             {
-                initMethod.Invoke(plugin, new object[] { connection, targetUser, false });
+                initMethod.Invoke(plugin, new object[] { _connection, targetUser, false });
             }
+
             plugin.Execute();
         }
 
+        // ---------------------------------------------------
+        // Group Whiteboard
+        // ---------------------------------------------------
         private void OpenGroupWhiteboardButton_Click(object sender, RoutedEventArgs e)
         {
             var groupName = GroupNameTextBox.Text.Trim();
             if (string.IsNullOrEmpty(groupName))
             {
-                MessageBox.Show("Please enter a group name for the group whiteboard.", "Missing Group Name",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Please enter a group name for the group whiteboard.",
+                                "Missing Group Name",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
                 return;
             }
 
-            // English comment: Check if plugin is loaded.
-            var plugin = GetWhiteboardPlugin();
+            var plugin = _currentlyLoadedPlugins
+                .FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
+
             if (plugin == null)
             {
-                MessageBox.Show("Whiteboard plugin is not loaded. Please load it via the 'Plugins' tab first.",
+                MessageBox.Show("Whiteboard plugin is NOT loaded.\n" +
+                                "Please go to the 'Plugins' tab, load the plugin manually,\n" +
+                                "and then try again.",
                                 "Plugin not found",
-                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
                 return;
             }
 
-            // English comment: Initialize the plugin in group mode, then execute.
-            var initMethod = plugin.GetType().GetMethod("Initialize", new Type[] { typeof(HubConnection), typeof(string), typeof(bool) });
+            // Reflection to call Initialize(_connection, groupName, true)
+            var initMethod = plugin.GetType().GetMethod(
+                "Initialize",
+                new[] { typeof(HubConnection), typeof(string), typeof(bool) }
+            );
             if (initMethod != null)
             {
-                initMethod.Invoke(plugin, new object[] { connection, groupName, true });
+                initMethod.Invoke(plugin, new object[] { _connection, groupName, true });
             }
+
             plugin.Execute();
         }
-        // --- End of changed methods. ---
 
+        // ---------------------------------------------------
+        // Example method: the PluginManager calls this to update
+        // the list of manually loaded plugins.
+        // ---------------------------------------------------
+        public void UpdateLoadedPlugins(IPlugin[] currentlyLoaded)
+        {
+            _currentlyLoadedPlugins = currentlyLoaded;
+        }
+
+        // ---------------------------------------------------
+        // Remaining chat methods unchanged
+        // ---------------------------------------------------
         private async void SendPrivateMessageButton_Click(object sender, RoutedEventArgs e)
         {
             var targetUser = PrivateTargetTextBox.Text.Trim();
@@ -219,7 +251,7 @@ namespace Client
 
             try
             {
-                await connection.InvokeAsync("SendPrivateMessage", targetUser, message);
+                await _connection.InvokeAsync("SendPrivateMessage", targetUser, message);
                 PrivateChatListBox.Items.Add($"Me to {targetUser}: {message}");
                 PrivateMessageTextBox.Clear();
             }
@@ -237,7 +269,7 @@ namespace Client
 
             try
             {
-                await connection.InvokeAsync("JoinGroup", groupName);
+                await _connection.InvokeAsync("JoinGroup", groupName);
                 GroupChatListBox.Items.Add($"Joined group {groupName}");
             }
             catch (Exception ex)
@@ -254,7 +286,7 @@ namespace Client
 
             try
             {
-                await connection.InvokeAsync("LeaveGroup", groupName);
+                await _connection.InvokeAsync("LeaveGroup", groupName);
                 GroupChatListBox.Items.Add($"Left group {groupName}");
             }
             catch (Exception ex)
@@ -272,7 +304,7 @@ namespace Client
 
             try
             {
-                await connection.InvokeAsync("SendGroupMessage", groupName, message);
+                await _connection.InvokeAsync("SendGroupMessage", groupName, message);
                 GroupChatListBox.Items.Add($"Me in {groupName}: {message}");
                 GroupMessageTextBox.Clear();
             }
@@ -298,18 +330,6 @@ namespace Client
                 e.Handled = true;
                 SendGroupMessageButton_Click(sender, e);
             }
-        }
-
-        // English comment: Helper method to scan the Plugins folder again for the "Whiteboard" plugin.
-        //                 If found, return it; otherwise return null.
-        private IPlugin? GetWhiteboardPlugin()
-        {
-            string pluginDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
-            var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-            var pluginLogger = loggerFactory.CreateLogger<PluginLoader>();
-            var loader = new PluginLoader(pluginLogger);
-            var allPlugins = loader.LoadPlugins(pluginDirectory);
-            return allPlugins.FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

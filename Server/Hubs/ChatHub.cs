@@ -80,16 +80,13 @@ namespace Server.Hubs
             }
         }
 
-        // Overloaded method to handle whiteboard line drawing with target (group or private).
         public async Task SendWhiteboardLine(string target, bool isGroup, double x1, double y1, double x2, double y2)
         {
             _logger.LogInformation("Whiteboard line drawn for target {target} (isGroup: {isGroup}): ({x1}, {y1}) to ({x2}, {y2})", target, isGroup, x1, y1, x2, y2);
-            // Send only to the specified group or private user's group.
             await Clients.Group(target).SendAsync("ReceiveWhiteboardLine", x1, y1, x2, y2);
         }
 
-        // Overloaded method for broadcast mode (no target specified).
-        public async Task SendWhiteboardLine(double x1, double y1, double x2, double y2)
+        public async Task SendWhiteboardLineBroadcast(double x1, double y1, double x2, double y2)
         {
             _logger.LogInformation("Whiteboard line drawn (broadcast): ({x1}, {y1}) to ({x2}, {y2})", x1, y1, x2, y2);
             await Clients.All.SendAsync("ReceiveWhiteboardLine", x1, y1, x2, y2);

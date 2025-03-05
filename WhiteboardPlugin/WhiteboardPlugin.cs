@@ -1,4 +1,5 @@
 ﻿// WhiteboardPlugin.cs
+
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -88,13 +89,8 @@ public class WhiteboardWindow : Window
         // Register to receive whiteboard drawing updates from the server if a connection exists.
         if (_connection != null)
         {
-            _connection.On<double, double, double, double>("ReceiveWhiteboardLine", (x1, y1, x2, y2) =>
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    DrawLine(x1, y1, x2, y2);
-                });
-            });
+            _connection.On<double, double, double, double>("ReceiveWhiteboardLine",
+                (x1, y1, x2, y2) => { Dispatcher.Invoke(() => { DrawLine(x1, y1, x2, y2); }); });
         }
     }
 
@@ -128,12 +124,14 @@ public class WhiteboardWindow : Window
                 if (!string.IsNullOrEmpty(_target))
                 {
                     // Send drawing data to a specific target (group or private).
-                    _connection.InvokeAsync("SendWhiteboardLine", _target, _isGroupMode, _previousPoint.X, _previousPoint.Y, currentPoint.X, currentPoint.Y);
+                    _connection.InvokeAsync("SendWhiteboardLine", _target, _isGroupMode, _previousPoint.X,
+                        _previousPoint.Y, currentPoint.X, currentPoint.Y);
                 }
                 else
                 {
-                    // Broadcast to all clients.
-                    _connection.InvokeAsync("SendWhiteboardLine", _previousPoint.X, _previousPoint.Y, currentPoint.X, currentPoint.Y);
+                    // Broadcast to all clients using the renamed method.
+                    _connection.InvokeAsync("SendWhiteboardLineBroadcast", _previousPoint.X, _previousPoint.Y,
+                        currentPoint.X, currentPoint.Y);
                 }
             }
 

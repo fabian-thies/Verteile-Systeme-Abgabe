@@ -7,22 +7,46 @@
         FontFamily="Segoe UI"
         WindowStyle="None"
         AllowsTransparency="True">
-    <Window.Resources>
-        <StaticResource ResourceKey="DropShadowEffect"/>
-    </Window.Resources>
-    <Border Background="White" CornerRadius="8" Padding="20" Effect="{DynamicResource DropShadowEffect}">
+    <!-- Border for modern card look with drop shadow -->
+    <Border Background="White" CornerRadius="8" Padding="0"
+            Effect="{DynamicResource DropShadowEffect}">
         <Grid>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Name="ErrorTextBlock" Foreground="Red" Text="" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>        <!-- Custom title bar -->
+                <RowDefinition Height="Auto"/>        <!-- Error area (collapsed if unused) -->
+                <RowDefinition Height="*"/>           <!-- Content area -->
+            </Grid.RowDefinitions>
+            <!-- Custom Title Bar -->
+            <Grid Grid.Row="0" Background="{StaticResource PrimaryBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Register" FontWeight="Bold" FontSize="16" 
+                           VerticalAlignment="Center" Margin="10,0,0,0" Foreground="White"/>
+                <Button Content="X" Width="40" Height="40" Grid.Column="1" 
+                        Click="CloseButton_Click"
+                        Background="Transparent" BorderBrush="Transparent" 
+                        Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+            </Grid>
+            <!-- Error Area (hidden when no error) -->
+            <StackPanel x:Name="ErrorPanel" Grid.Row="1" Visibility="Collapsed" Margin="10,5,10,5">
+                <!-- ScrollViewer for long error messages -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="60">
+                    <TextBlock x:Name="ErrorTextBlock" Foreground="Red" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                </ScrollViewer>
+            </StackPanel>
+            <!-- Content Area -->
+            <StackPanel Grid.Row="2" Margin="20">
                 <TextBlock Text="Username:" Margin="0,0,0,5"/>
-                <TextBox Name="UsernameTextBox" Margin="0,0,0,10"/>
+                <TextBox x:Name="UsernameTextBox" Margin="0,0,0,10"/>
                 <TextBlock Text="Password:" Margin="0,0,0,5"/>
-                <PasswordBox Name="PasswordBox" Margin="0,0,0,10"/>
+                <PasswordBox x:Name="PasswordBox" Margin="0,0,0,10"/>
                 <TextBlock Text="Confirm Password:" Margin="0,0,0,5"/>
-                <PasswordBox Name="ConfirmPasswordBox" Margin="0,0,0,10"/>
+                <PasswordBox x:Name="ConfirmPasswordBox" Margin="0,0,0,10"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Button Content="Register" Click="RegisterButton_Click"/>
-                    <Button Content="Back to Login" Click="BackToLoginButton_Click"/>
+                    <Button Content="Register" Click="RegisterButton_Click" Margin="5"/>
+                    <Button Content="Back to Login" Click="BackToLoginButton_Click" Margin="5"/>
                 </StackPanel>
             </StackPanel>
         </Grid>

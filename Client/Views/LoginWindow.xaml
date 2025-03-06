@@ -13,6 +13,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="40"/> <!-- Custom title bar -->
+                <RowDefinition Height="Auto"/> <!-- Error area, collapsed if empty -->
                 <RowDefinition Height="*"/>    <!-- Content area -->
             </Grid.RowDefinitions>
             <!-- Custom Title Bar as Grid -->
@@ -27,9 +28,16 @@
                         Background="Transparent" BorderBrush="Transparent" 
                         Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
             </Grid>
+            <!-- Error area: shown only when needed -->
+            <StackPanel x:Name="ErrorPanel" Grid.Row="1" Visibility="Collapsed" Margin="10,5,10,5">
+                <!-- ScrollViewer sorgt dafür, dass lange Texte gescrollt werden können -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="60">
+                    <TextBlock Name="ErrorTextBlock" Foreground="Red" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                </ScrollViewer>
+                <TextBlock Name="RetryCountdownTextBlock" Foreground="Gray" FontSize="12" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+            </StackPanel>
             <!-- Content Area -->
-            <StackPanel Grid.Row="1" Margin="20">
-                <TextBlock Name="ErrorTextBlock" Foreground="Red" Text="" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+            <StackPanel Grid.Row="2" Margin="20">
                 <TextBlock Text="Username:" Margin="0,0,0,5"/>
                 <TextBox Name="UsernameTextBox" Margin="0,0,0,10"/>
                 <TextBlock Text="Password:" Margin="0,0,0,5"/>

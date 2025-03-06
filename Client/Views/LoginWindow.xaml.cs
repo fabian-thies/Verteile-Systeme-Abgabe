@@ -1,83 +1,138 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 using Microsoft.AspNetCore.SignalR.Client;
 
-namespace Client.Views;
-
-public partial class LoginWindow : Window
+namespace Client.Views
 {
-    private readonly HubConnection connection;
-
-    public LoginWindow()
+    public partial class LoginWindow : Window
     {
-        InitializeComponent();
-        connection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:5000/chatHub")
-            .Build();
+        private readonly HubConnection connection;
+        private DispatcherTimer retryTimer;
+        private int retrySecondsRemaining = 60;
 
-        ConnectToServer();
-    }
-
-    private async void ConnectToServer()
-    {
-        try
+        public LoginWindow()
         {
-            await connection.StartAsync();
+            InitializeComponent();
+            connection = new HubConnectionBuilder()
+                .WithUrl("http://localhost:5000/chatHub")
+                .Build();
+
+            ConnectToServer();
         }
-        catch (Exception ex)
+
+        private async void ConnectToServer()
         {
-            ErrorTextBlock.Text = "Failed to connect to server: " + ex.Message;
-        }
-    }
-
-    private async void LoginButton_Click(object sender, RoutedEventArgs e)
-    {
-        ErrorTextBlock.Text = string.Empty;
-
-        var username = UsernameTextBox.Text;
-        var password = PasswordBox.Password;
-
-        try
-        {
-            var isAuthenticated = await connection.InvokeAsync<bool>("Login", username, password);
-            if (isAuthenticated)
+            try
             {
-                var mainWindow = new MainWindow(connection);
+                await connection.StartAsync();
+                // On success: clear error and hide error panel
+                ErrorTextBlock.Text = "";
+                RetryCountdownTextBlock.Text = "";
+                ErrorPanel.Visibility = Visibility.Collapsed;
+                StopRetryTimer();
+            }
+            catch (Exception ex)
+            {
+                // Set full error message
+                ErrorTextBlock.Text = "Failed to connect to server: " + ex.Message;
+                // Show error panel so it takes Platz
+                ErrorPanel.Visibility = Visibility.Visible;
+                StartRetryTimer();
+            }
+        }
 
-                Application.Current.MainWindow = mainWindow;
+        private void StartRetryTimer()
+        {
+            retrySecondsRemaining = 60;
+            RetryCountdownTextBlock.Text = "Erneuter Verbindungsversuch in " + retrySecondsRemaining + " Sekunden...";
+            if (retryTimer == null)
+            {
+                retryTimer = new DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(1)
+                };
+                retryTimer.Tick += RetryTimer_Tick;
+            }
+            retryTimer.Start();
+        }
 
-                mainWindow.Show();
-                this.Close();
+        private void StopRetryTimer()
+        {
+            if (retryTimer != null && retryTimer.IsEnabled)
+            {
+                retryTimer.Stop();
+            }
+        }
+
+        private async void RetryTimer_Tick(object sender, EventArgs e)
+        {
+            retrySecondsRemaining--;
+            if (retrySecondsRemaining > 0)
+            {
+                RetryCountdownTextBlock.Text = "Erneuter Verbindungsversuch in " + retrySecondsRemaining + " Sekunden...";
             }
             else
             {
-                ErrorTextBlock.Text = "Invalid username or password.";
+                RetryCountdownTextBlock.Text = "Erneuter Verbindungsversuch...";
+                StopRetryTimer();
+                await System.Threading.Tasks.Task.Delay(500); // small delay before retry
+                ConnectToServer();
             }
         }
-        catch (Exception ex)
-        {
-            ErrorTextBlock.Text = "An error occurred: " + ex.Message;
-        }
-    }
 
-    private void RegisterButton_Click(object sender, RoutedEventArgs e)
-    {
-        var registerWindow = new RegisterWindow();
-        registerWindow.Show();
-        Close();
-    }
-    
-    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-    {
-        // Only attempt DragMove if the left button is pressed
-        if (e.LeftButton == MouseButtonState.Pressed)
+        private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            DragMove();
-        }
-    }
+            ErrorTextBlock.Text = string.Empty;
+            ErrorPanel.Visibility = Visibility.Collapsed;
 
-    private void CloseButton_Click(object sender, RoutedEventArgs e)
-    {
-        Close();
+            var username = UsernameTextBox.Text;
+            var password = PasswordBox.Password;
+
+            try
+            {
+                var isAuthenticated = await connection.InvokeAsync<bool>("Login", username, password);
+                if (isAuthenticated)
+                {
+                    var mainWindow = new MainWindow(connection);
+                    Application.Current.MainWindow = mainWindow;
+                    mainWindow.Show();
+                    this.Close();
+                }
+                else
+                {
+                    ErrorTextBlock.Text = "Invalid username or password.";
+                    ErrorPanel.Visibility = Visibility.Visible;
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorTextBlock.Text = "An error occurred: " + ex.Message;
+                ErrorPanel.Visibility = Visibility.Visible;
+            }
+        }
+
+        private void RegisterButton_Click(object sender, RoutedEventArgs e)
+        {
+            var registerWindow = new RegisterWindow();
+            registerWindow.Show();
+            Close();
+        }
+
+        // Allows dragging via the title bar.
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                DragMove();
+            }
+        }
+
+        // Closes the window when the close button is clicked.
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
     }
 }

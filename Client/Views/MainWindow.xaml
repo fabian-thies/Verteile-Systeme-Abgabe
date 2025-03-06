@@ -11,22 +11,17 @@
   <Border Background="White" CornerRadius="8" Padding="0" Effect="{DynamicResource DropShadowEffect}">
     <Grid>
       <Grid.RowDefinitions>
-        <RowDefinition Height="40"/> <!-- Custom title bar -->
-        <RowDefinition Height="*"/>  <!-- Content area -->
+        <RowDefinition Height="40"/>
+        <RowDefinition Height="*"/>
       </Grid.RowDefinitions>
-      <!-- Custom Title Bar -->
       <Grid Grid.Row="0" Background="{StaticResource PrimaryBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="*"/>
           <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <TextBlock Text="Chat Application" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="Bold" FontSize="16"/>
-        <Button Content="X" Width="40" Height="40" Grid.Column="1" 
-                Click="CloseButton_Click"
-                Background="Transparent" BorderBrush="Transparent" 
-                Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+        <Button Content="X" Width="40" Height="40" Grid.Column="1" Click="CloseButton_Click" Background="Transparent" BorderBrush="Transparent" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
       </Grid>
-      <!-- Content Area -->
       <Grid Grid.Row="1">
         <TabControl Name="ChatTabControl" Margin="10">
           <TabItem Header="Private Chat">
@@ -43,9 +38,7 @@
               <ListBox Name="PrivateChatListBox" Grid.Row="1" ItemContainerStyle="{StaticResource ChatMessageStyle}">
                 <ListBox.ItemTemplate>
                   <DataTemplate>
-                    <!-- Chat bubble style for messages (unverändert, falls gewünscht) -->
-                    <Border Background="{StaticResource ChatBubbleBackground}" 
-                            CornerRadius="8" Padding="8" Margin="4">
+                    <Border Background="{StaticResource ChatBubbleBackground}" CornerRadius="8" Padding="8" Margin="4">
                       <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
                     </Border>
                   </DataTemplate>
@@ -74,8 +67,7 @@
               <ListBox Name="GroupChatListBox" Grid.Row="1" ItemContainerStyle="{StaticResource ChatMessageStyle}">
                 <ListBox.ItemTemplate>
                   <DataTemplate>
-                    <Border Background="{StaticResource ChatBubbleBackground}" 
-                            CornerRadius="8" Padding="8" Margin="4">
+                    <Border Background="{StaticResource ChatBubbleBackground}" CornerRadius="8" Padding="8" Margin="4">
                       <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
                     </Border>
                   </DataTemplate>
@@ -89,8 +81,25 @@
             </Grid>
           </TabItem>
           <TabItem Header="Plugins">
-            <!-- Plugin Manager bleibt unverändert -->
             <views:PluginManager/>
+          </TabItem>
+          <TabItem Header="Files">
+            <Grid Margin="10">
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+              </Grid.RowDefinitions>
+              <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
+                <Button Content="Upload File" Click="UploadFileButton_Click" Margin="5"/>
+                <TextBlock Name="UploadStatusTextBlock" VerticalAlignment="Center" Margin="5"/>
+              </StackPanel>
+              <StackPanel Grid.Row="1" Orientation="Vertical">
+                <TextBlock Text="Enter Document ID to download:" Margin="5"/>
+                <TextBox Name="DocumentIdTextBox" Width="200" Margin="5"/>
+                <Button Content="Download File" Click="DownloadFileButton_Click" Margin="5"/>
+                <TextBlock Name="DownloadStatusTextBlock" VerticalAlignment="Center" Margin="5"/>
+              </StackPanel>
+            </Grid>
           </TabItem>
         </TabControl>
       </Grid>

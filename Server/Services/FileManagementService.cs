@@ -7,12 +7,14 @@ using Npgsql;
 
 namespace Server.Services
 {
+    // Interface for file management functionality.
     public interface IFileManagementService
     {
+        // Uploads a file (given as a Base64 string) and inserts its metadata into the database.
         Task<int> UploadFileAsync(string filename, string base64Content, string author, string metadataJson);
 
+        // Downloads a file by retrieving its path from the database and reading the file from disk.
         Task<string> DownloadFileAsync(int documentId);
-        // Additional methods (e.g. UpdateFileAsync, GetMetadataAsync) can be defined here.
     }
 
     public class FileManagementService : IFileManagementService
@@ -26,8 +28,7 @@ namespace Server.Services
             _connectionString = configuration.GetConnectionString("DefaultConnection");
             _logger = logger;
             // Get the file storage path from configuration or default to "UploadedFiles" directory.
-            _fileStoragePath = configuration["FileStoragePath"] ??
-                               Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UploadedFiles");
+            _fileStoragePath = configuration["FileStoragePath"] ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UploadedFiles");
 
             // Create the storage directory if it doesn't exist.
             if (!Directory.Exists(_fileStoragePath))
@@ -37,20 +38,18 @@ namespace Server.Services
             }
         }
 
-        // Uploads a file by saving it to disk and inserting metadata into the database.
-        public async Task<int> UploadFileAsync(string filename, string base64Content, string author,
-            string metadataJson)
+        public async Task<int> UploadFileAsync(string filename, string base64Content, string author, string metadataJson)
         {
             try
             {
-                // Convert the base64 string to a byte array.
+                // Convert the Base64 string to a byte array.
                 byte[] fileBytes = Convert.FromBase64String(base64Content);
 
                 // Generate a unique file name to avoid conflicts.
                 string uniqueFileName = $"{Guid.NewGuid()}_{filename}";
                 string filePath = Path.Combine(_fileStoragePath, uniqueFileName);
 
-                // Save file to disk.
+                // Save the file to disk.
                 await File.WriteAllBytesAsync(filePath, fileBytes);
                 _logger.LogInformation("File saved to disk: {filePath}", filePath);
 
@@ -68,7 +67,7 @@ namespace Server.Services
                         cmd.Parameters.AddWithValue("filename", filename);
                         cmd.Parameters.AddWithValue("author", author);
                         cmd.Parameters.AddWithValue("file_path", filePath);
-                        // If no metadata is provided, default to an empty JSON object.
+                        // Use an empty JSON object if metadata is null.
                         cmd.Parameters.AddWithValue("metadata", metadataJson ?? "{}");
                         documentId = (int)await cmd.ExecuteScalarAsync();
                     }
@@ -84,12 +83,12 @@ namespace Server.Services
             }
         }
 
-        // Downloads a file by retrieving the file path from the database and reading the file from disk.
         public async Task<string> DownloadFileAsync(int documentId)
         {
             try
             {
                 string filePath = null;
+                // Retrieve the file path from the database.
                 using (var conn = new NpgsqlConnection(_connectionString))
                 {
                     await conn.OpenAsync();
@@ -103,7 +102,6 @@ namespace Server.Services
                             _logger.LogWarning("Document with id {id} not found", documentId);
                             return null;
                         }
-
                         filePath = result.ToString();
                     }
                 }
@@ -114,7 +112,7 @@ namespace Server.Services
                     return null;
                 }
 
-                // Read the file and convert its content to a base64 string.
+                // Read the file and convert its content to a Base64 string.
                 byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
                 string base64Content = Convert.ToBase64String(fileBytes);
                 return base64Content;

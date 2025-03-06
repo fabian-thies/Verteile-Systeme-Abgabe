@@ -1,10 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 
 namespace Client
 {
@@ -48,25 +46,19 @@ namespace Client
                     GroupChatListBox.Items.Add("[System]: " + message);
                 });
             });
-
             _connection.On<string>("ReceiveWhiteboardPluginRequest", async requester =>
             {
                 await Dispatcher.InvokeAsync(async () =>
                 {
                     if (IsPluginLoaded("Whiteboard"))
-                    {
                         return;
-                    }
-                    var result = MessageBox.Show(
-                        requester + " invites you to join a whiteboard session.\nDo you want to automatically load the plugin?",
-                        "Whiteboard Plugin Request", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    var result = MessageBox.Show(requester + " invites you to join a whiteboard session.\nDo you want to automatically load the plugin?", "Whiteboard Plugin Request", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (result == MessageBoxResult.Yes)
                     {
                         await _connection.InvokeAsync("RequestPluginFile", requester);
                     }
                 });
             });
-
             _connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
             {
                 Dispatcher.Invoke(() =>
@@ -79,17 +71,14 @@ namespace Client
                             Directory.CreateDirectory(pluginDir);
                         string pluginFilePath = Path.Combine(pluginDir, "WhiteboardPlugin.dll");
                         File.WriteAllBytes(pluginFilePath, pluginBytes);
-                        MessageBox.Show("Whiteboard plugin has been automatically loaded.",
-                            "Plugin Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Whiteboard plugin has been automatically loaded.", "Plugin Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show("Error saving plugin file: " + ex.Message,
-                            "Plugin Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show("Error saving plugin file: " + ex.Message, "Plugin Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 });
             });
-
             _connection.On<string>("ReceivePluginFileRequest", async (targetUser) =>
             {
                 await Dispatcher.InvokeAsync(async () =>
@@ -105,8 +94,7 @@ namespace Client
                         }
                         else
                         {
-                            MessageBox.Show("Plugin file not found.", "File Error",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
+                            MessageBox.Show("Plugin file not found.", "File Error", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
                     }
                     catch (Exception ex)
@@ -117,83 +105,74 @@ namespace Client
             });
         }
 
-        private async void OpenPrivateWhiteboardButton_Click(object sender, RoutedEventArgs e)
+        private async void UploadFileButton_Click(object sender, RoutedEventArgs e)
         {
-            var targetUser = PrivateTargetTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(targetUser))
+            var openFileDialog = new OpenFileDialog
             {
-                MessageBox.Show("Please enter a target username.", "Missing Target",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            var plugin = _currentlyLoadedPlugins
-                .FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
-            if (plugin == null)
+                Filter = "All Files (*.*)|*.*",
+                Title = "Select a file to upload"
+            };
+            if (openFileDialog.ShowDialog() == true)
             {
-                MessageBox.Show("Whiteboard plugin is NOT loaded.\n"
-                                + "Please go to the 'Plugins' tab, load the plugin manually,\n"
-                                + "and then try again.",
-                    "Plugin not found", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                try
+                {
+                    string filePath = openFileDialog.FileName;
+                    byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
+                    string base64Content = Convert.ToBase64String(fileBytes);
+                    string filename = Path.GetFileName(filePath);
+                    string metadata = "{}";
+                    int documentId = await _connection.InvokeAsync<int>("UploadDocument", filename, base64Content, metadata);
+                    UploadStatusTextBlock.Text = $"File uploaded successfully. Document ID: {documentId}";
+                }
+                catch (Exception ex)
+                {
+                    UploadStatusTextBlock.Text = "Error uploading file: " + ex.Message;
+                }
             }
-
-            try
-            {
-                await _connection.InvokeAsync("RequestWhiteboardPlugin", targetUser);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error sending whiteboard plugin request: " + ex.Message);
-                return;
-            }
-
-            var initMethod = plugin.GetType()
-                .GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
-            if (initMethod != null)
-            {
-                initMethod.Invoke(plugin, new object[] { _connection, targetUser, false });
-            }
-
-            plugin.Execute();
         }
 
-        private void OpenGroupWhiteboardButton_Click(object sender, RoutedEventArgs e)
+        private async void DownloadFileButton_Click(object sender, RoutedEventArgs e)
         {
-            var groupName = GroupNameTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(groupName))
+            if (int.TryParse(DocumentIdTextBox.Text, out int documentId))
             {
-                MessageBox.Show("Please enter a group name.", "Missing Group Name",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                try
+                {
+                    string base64Content = await _connection.InvokeAsync<string>("DownloadDocument", documentId);
+                    if (base64Content == null)
+                    {
+                        DownloadStatusTextBlock.Text = "Document not found.";
+                        return;
+                    }
+                    var saveFileDialog = new SaveFileDialog
+                    {
+                        FileName = "downloaded_file",
+                        Filter = "All Files (*.*)|*.*",
+                        Title = "Save downloaded file"
+                    };
+                    if (saveFileDialog.ShowDialog() == true)
+                    {
+                        byte[] fileBytes = Convert.FromBase64String(base64Content);
+                        await File.WriteAllBytesAsync(saveFileDialog.FileName, fileBytes);
+                        DownloadStatusTextBlock.Text = "File downloaded successfully.";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    DownloadStatusTextBlock.Text = "Error downloading file: " + ex.Message;
+                }
             }
-
-            var plugin = _currentlyLoadedPlugins
-                .FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
-            if (plugin == null)
+            else
             {
-                MessageBox.Show("Whiteboard plugin is NOT loaded.\n"
-                                + "Please go to the 'Plugins' tab, load the plugin manually,\n"
-                                + "and then try again.",
-                    "Plugin not found", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                DownloadStatusTextBlock.Text = "Invalid document ID.";
             }
-
-            var initMethod = plugin.GetType()
-                .GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
-            if (initMethod != null)
-            {
-                initMethod.Invoke(plugin, new object[] { _connection, groupName, true });
-            }
-
-            plugin.Execute();
         }
 
         private async void SendPrivateMessageButton_Click(object sender, RoutedEventArgs e)
         {
             var targetUser = PrivateTargetTextBox.Text.Trim();
             var message = PrivateMessageTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(targetUser) || string.IsNullOrEmpty(message)) return;
+            if (string.IsNullOrEmpty(targetUser) || string.IsNullOrEmpty(message))
+                return;
             try
             {
                 await _connection.InvokeAsync("SendPrivateMessage", targetUser, message);
@@ -209,7 +188,8 @@ namespace Client
         private async void JoinGroupButton_Click(object sender, RoutedEventArgs e)
         {
             var groupName = GroupNameTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(groupName)) return;
+            if (string.IsNullOrEmpty(groupName))
+                return;
             try
             {
                 await _connection.InvokeAsync("JoinGroup", groupName);
@@ -224,7 +204,8 @@ namespace Client
         private async void LeaveGroupButton_Click(object sender, RoutedEventArgs e)
         {
             var groupName = GroupNameTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(groupName)) return;
+            if (string.IsNullOrEmpty(groupName))
+                return;
             try
             {
                 await _connection.InvokeAsync("LeaveGroup", groupName);
@@ -240,7 +221,8 @@ namespace Client
         {
             var groupName = GroupNameTextBox.Text.Trim();
             var message = GroupMessageTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(groupName) || string.IsNullOrEmpty(message)) return;
+            if (string.IsNullOrEmpty(groupName) || string.IsNullOrEmpty(message))
+                return;
             try
             {
                 await _connection.InvokeAsync("SendGroupMessage", groupName, message);
@@ -274,14 +256,65 @@ namespace Client
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
-            {
                 DragMove();
-            }
         }
 
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private async void OpenPrivateWhiteboardButton_Click(object sender, RoutedEventArgs e)
+        {
+            var targetUser = PrivateTargetTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(targetUser))
+            {
+                MessageBox.Show("Please enter a target username.", "Missing Target", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var plugin = _currentlyLoadedPlugins.FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
+            if (plugin == null)
+            {
+                MessageBox.Show("Whiteboard plugin is NOT loaded.\nPlease go to the 'Plugins' tab, load the plugin manually, and then try again.", "Plugin not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                await _connection.InvokeAsync("RequestWhiteboardPlugin", targetUser);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error sending whiteboard plugin request: " + ex.Message);
+                return;
+            }
+            var initMethod = plugin.GetType().GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
+            if (initMethod != null)
+            {
+                initMethod.Invoke(plugin, new object[] { _connection, targetUser, false });
+            }
+            plugin.Execute();
+        }
+
+        private void OpenGroupWhiteboardButton_Click(object sender, RoutedEventArgs e)
+        {
+            var groupName = GroupNameTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(groupName))
+            {
+                MessageBox.Show("Please enter a group name.", "Missing Group Name", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var plugin = _currentlyLoadedPlugins.FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
+            if (plugin == null)
+            {
+                MessageBox.Show("Whiteboard plugin is NOT loaded.\nPlease go to the 'Plugins' tab, load the plugin manually, and then try again.", "Plugin not found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var initMethod = plugin.GetType().GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
+            if (initMethod != null)
+            {
+                initMethod.Invoke(plugin, new object[] { _connection, groupName, true });
+            }
+            plugin.Execute();
         }
     }
 }

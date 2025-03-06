@@ -12,9 +12,9 @@ builder.Services.AddScoped<IFileManagementService, FileManagementService>();
 var app = builder.Build();
 
 var connectionString = app.Configuration.GetConnectionString("DefaultConnection");
-
 var dbConnected = false;
 while (!dbConnected)
+{
     try
     {
         using (var conn = new NpgsqlConnection(connectionString))
@@ -29,7 +29,7 @@ while (!dbConnected)
         Console.Error.WriteLine("Database connection failed: " + ex.Message);
         await Task.Delay(TimeSpan.FromSeconds(60));
     }
+}
 
 app.MapHub<ChatHub>("/chatHub");
-
 app.Run();

@@ -43,5 +43,5 @@ CREATE TABLE documents
     last_modified TIMESTAMP NOT NULL DEFAULT NOW(),
     version INTEGER NOT NULL DEFAULT 1,
     file_path TEXT NOT NULL,
-    metadata JSONB  -- Additional metadata as JSON (e.g. involved users, last change info, etc.)
+    metadata JSONB
 );

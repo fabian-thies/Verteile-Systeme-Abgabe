@@ -25,7 +25,6 @@ namespace Client
             _currentlyLoadedPlugins = currentlyLoaded ?? Array.Empty<IPlugin>();
         }
 
-        // New helper method to check if a plugin is already loaded.
         public bool IsPluginLoaded(string pluginName)
         {
             return _currentlyLoadedPlugins.Any(p => p.Name.Equals(pluginName, StringComparison.OrdinalIgnoreCase));
@@ -50,15 +49,12 @@ namespace Client
                 });
             });
 
-            // Angepasster Handler: Nur anzeigen, wenn das Whiteboard-Plugin noch nicht geladen ist.
             _connection.On<string>("ReceiveWhiteboardPluginRequest", async requester =>
             {
                 await Dispatcher.InvokeAsync(async () =>
                 {
-                    // Check if whiteboard plugin is already loaded
                     if (IsPluginLoaded("Whiteboard"))
                     {
-                        // Plugin already loaded – do nothing.
                         return;
                     }
                     var result = MessageBox.Show(
@@ -66,13 +62,11 @@ namespace Client
                         "Whiteboard Plugin Request", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (result == MessageBoxResult.Yes)
                     {
-                        // Request the plugin file from the requester (plugin owner)
                         await _connection.InvokeAsync("RequestPluginFile", requester);
                     }
                 });
             });
 
-            // When a plugin file is received, save it directly to the Plugins folder.
             _connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
             {
                 Dispatcher.Invoke(() =>
@@ -87,7 +81,6 @@ namespace Client
                         File.WriteAllBytes(pluginFilePath, pluginBytes);
                         MessageBox.Show("Whiteboard plugin has been automatically loaded.",
                             "Plugin Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
-                        // Optional: Trigger automatic plugin reload here.
                     }
                     catch (Exception ex)
                     {
@@ -97,7 +90,6 @@ namespace Client
                 });
             });
 
-            // Handler for sending the plugin file when requested by another client (unverändert)
             _connection.On<string>("ReceivePluginFileRequest", async (targetUser) =>
             {
                 await Dispatcher.InvokeAsync(async () =>

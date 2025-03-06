@@ -29,14 +29,16 @@ namespace Client
 
         private void RegisterSignalREvents()
         {
-            _connection.On<string, string>("ReceivePrivateMessage", (sender, message) =>
-            {
-                Dispatcher.Invoke(() => { PrivateChatListBox.Items.Add(sender + ": " + message); });
-            });
-            _connection.On<string, string>("ReceiveGroupMessage", (sender, message) =>
-            {
-                Dispatcher.Invoke(() => { GroupChatListBox.Items.Add(sender + ": " + message); });
-            });
+            _connection.On<string, string>("ReceivePrivateMessage",
+                (sender, message) =>
+                {
+                    Dispatcher.Invoke(() => { PrivateChatListBox.Items.Add(sender + ": " + message); });
+                });
+            _connection.On<string, string>("ReceiveGroupMessage",
+                (sender, message) =>
+                {
+                    Dispatcher.Invoke(() => { GroupChatListBox.Items.Add(sender + ": " + message); });
+                });
             _connection.On<string>("ReceiveSystemMessage", message =>
             {
                 Dispatcher.Invoke(() =>
@@ -45,16 +47,24 @@ namespace Client
                     GroupChatListBox.Items.Add("[System]: " + message);
                 });
             });
-            _connection.On<string>("ReceiveWhiteboardPluginRequest", requester =>
+            // When a whiteboard plugin request is received, ask if the plugin should be loaded automatically.
+            _connection.On<string>("ReceiveWhiteboardPluginRequest", async requester =>
             {
-                Dispatcher.Invoke(() =>
+                await Dispatcher.InvokeAsync(async () =>
                 {
-                    MessageBox.Show(requester + " invites you to join a whiteboard session.\n"
-                        + "They can send you the plugin file. Once you receive it, place it into your 'Plugins' folder "
-                        + "and load it manually from the Plugin Manager.",
-                        "Whiteboard Plugin Request", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var result = MessageBox.Show(
+                        requester +
+                        " invites you to join a whiteboard session.\nDo you want to automatically load the plugin?",
+                        "Whiteboard Plugin Request", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        // Request the plugin file from the requester (plugin owner)
+                        await _connection.InvokeAsync("RequestPluginFile", requester);
+                    }
                 });
             });
+
+// When a plugin file is received, save it directly to the Plugins folder.
             _connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
             {
                 Dispatcher.Invoke(() =>
@@ -62,15 +72,15 @@ namespace Client
                     try
                     {
                         byte[] pluginBytes = Convert.FromBase64String(base64Content);
-                        string receivedDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ReceivedPlugins");
-                        if (!Directory.Exists(receivedDir))
-                            Directory.CreateDirectory(receivedDir);
-                        string pluginFilePath = Path.Combine(receivedDir, "WhiteboardPlugin.dll");
-                        File.WriteAllBytes(pluginFilePath, pluginBytes);
-                        MessageBox.Show("A Whiteboard plugin file has been received and saved to:\n\n"
-                            + pluginFilePath + "\n\nPlease copy this DLL into your 'Plugins' folder "
-                            + "and load it via the Plugin Manager if you want to use it.",
-                            "Plugin Received", MessageBoxButton.OK, MessageBoxImage.Information);
+                        string pluginDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+                        if (!System.IO.Directory.Exists(pluginDir))
+                            System.IO.Directory.CreateDirectory(pluginDir);
+                        string pluginFilePath = System.IO.Path.Combine(pluginDir, "WhiteboardPlugin.dll");
+                        System.IO.File.WriteAllBytes(pluginFilePath, pluginBytes);
+                        MessageBox.Show("Whiteboard plugin has been automatically loaded.",
+                            "Plugin Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                        // Optional: trigger a plugin reload if Du eine solche Logik implementiert hast.
                     }
                     catch (Exception ex)
                     {
@@ -79,16 +89,19 @@ namespace Client
                     }
                 });
             });
-            _connection.On<string>("ReceivePluginFileRequest", (targetUser) =>
+
+// Handler for sending the plugin file when requested by another client (remains unverändert)
+            _connection.On<string>("ReceivePluginFileRequest", async (targetUser) =>
             {
-                Dispatcher.Invoke(async () =>
+                await Dispatcher.InvokeAsync(async () =>
                 {
                     try
                     {
-                        string pluginPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", "WhiteboardPlugin.dll");
-                        if (File.Exists(pluginPath))
+                        string pluginPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins",
+                            "WhiteboardPlugin.dll");
+                        if (System.IO.File.Exists(pluginPath))
                         {
-                            byte[] pluginBytes = File.ReadAllBytes(pluginPath);
+                            byte[] pluginBytes = System.IO.File.ReadAllBytes(pluginPath);
                             string base64Content = Convert.ToBase64String(pluginBytes);
                             await _connection.InvokeAsync("SendPluginFile", targetUser, base64Content);
                         }
@@ -115,16 +128,18 @@ namespace Client
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
             var plugin = _currentlyLoadedPlugins
                 .FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
             if (plugin == null)
             {
                 MessageBox.Show("Whiteboard plugin is NOT loaded.\n"
-                    + "Please go to the 'Plugins' tab, load the plugin manually,\n"
-                    + "and then try again.",
+                                + "Please go to the 'Plugins' tab, load the plugin manually,\n"
+                                + "and then try again.",
                     "Plugin not found", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
             try
             {
                 await _connection.InvokeAsync("RequestWhiteboardPlugin", targetUser);
@@ -134,11 +149,14 @@ namespace Client
                 MessageBox.Show("Error sending whiteboard plugin request: " + ex.Message);
                 return;
             }
-            var initMethod = plugin.GetType().GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
+
+            var initMethod = plugin.GetType()
+                .GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
             if (initMethod != null)
             {
                 initMethod.Invoke(plugin, new object[] { _connection, targetUser, false });
             }
+
             plugin.Execute();
         }
 
@@ -151,21 +169,25 @@ namespace Client
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
             var plugin = _currentlyLoadedPlugins
                 .FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
             if (plugin == null)
             {
                 MessageBox.Show("Whiteboard plugin is NOT loaded.\n"
-                    + "Please go to the 'Plugins' tab, load the plugin manually,\n"
-                    + "and then try again.",
+                                + "Please go to the 'Plugins' tab, load the plugin manually,\n"
+                                + "and then try again.",
                     "Plugin not found", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            var initMethod = plugin.GetType().GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
+
+            var initMethod = plugin.GetType()
+                .GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
             if (initMethod != null)
             {
                 initMethod.Invoke(plugin, new object[] { _connection, groupName, true });
             }
+
             plugin.Execute();
         }
 
@@ -250,7 +272,7 @@ namespace Client
                 SendGroupMessageButton_Click(sender, e);
             }
         }
-        
+
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)

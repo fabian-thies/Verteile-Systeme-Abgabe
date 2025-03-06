@@ -9,10 +9,16 @@ namespace Client.Converters
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             string message = value as string;
-            if (!string.IsNullOrEmpty(message) && (message.StartsWith("Me to") || message.StartsWith("Me in")))
+            if (!string.IsNullOrWhiteSpace(message))
             {
-                return true;
+                message = message.TrimStart();
+                if (message.StartsWith("Me to", StringComparison.OrdinalIgnoreCase) ||
+                    message.StartsWith("Me in", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
             }
+
             return false;
         }
 

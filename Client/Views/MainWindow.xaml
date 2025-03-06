@@ -15,13 +15,17 @@
         <RowDefinition Height="*"/>  <!-- Content area -->
       </Grid.RowDefinitions>
       <!-- Custom Title Bar -->
-      <DockPanel Grid.Row="0" Background="{StaticResource PrimaryBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
-          <TextBlock Text="Chat Application" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="Bold" FontSize="16"/>
-          <Button Content="X" Width="40" Height="40" DockPanel.Dock="Right" 
-                  Click="CloseButton_Click"
-                  Background="Transparent" BorderBrush="Transparent" 
-                  Foreground="White" FontWeight="Bold"/>
-      </DockPanel>
+      <Grid Grid.Row="0" Background="{StaticResource PrimaryBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <TextBlock Text="Chat Application" Foreground="White" VerticalAlignment="Center" Margin="10,0,0,0" FontWeight="Bold" FontSize="16"/>
+        <Button Content="X" Width="40" Height="40" Grid.Column="1" 
+                Click="CloseButton_Click"
+                Background="Transparent" BorderBrush="Transparent" 
+                Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+      </Grid>
       <!-- Content Area -->
       <Grid Grid.Row="1">
         <TabControl Name="ChatTabControl" Margin="10">

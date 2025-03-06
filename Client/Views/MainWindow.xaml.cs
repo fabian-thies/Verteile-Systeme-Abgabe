@@ -251,20 +251,17 @@ namespace Client
             }
         }
         
-        // Allows dragging of the window from the title bar.
         private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left)
+            if (e.LeftButton == MouseButtonState.Pressed)
             {
                 DragMove();
             }
         }
 
-// Closes the MainWindow.
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
-
     }
 }

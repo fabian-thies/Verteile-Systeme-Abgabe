@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Height="400" Width="600"
              FontFamily="Segoe UI">
-    <Border Background="White" CornerRadius="8" Padding="20" Effect="{DynamicResource DropShadowEffect}">
+    <Border Background="White" CornerRadius="8" Padding="20">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -11,8 +11,8 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
-                <Button Name="LoadPluginsButton" Content="Load Plugins" Click="LoadPluginsButton_Click" Width="120"/>
-                <Button Name="LoadPluginFileButton" Content="Load Plugin File" Click="LoadPluginFileButton_Click" Width="150" Margin="10,0"/>
+                <Button Name="LoadPluginsButton" Content="Load Plugins" Click="LoadPluginsButton_Click" Width="120" Height="35"/>
+                <Button Name="LoadPluginFileButton" Content="Load Plugin File" Click="LoadPluginFileButton_Click" Width="150" Height="35"/>
                 <TextBlock Name="StatusTextBlock" VerticalAlignment="Center" Margin="10,0"/>
             </StackPanel>
             <ListBox Name="PluginsListBox" Grid.Row="1" ItemContainerStyle="{StaticResource ChatMessageStyle}"/>

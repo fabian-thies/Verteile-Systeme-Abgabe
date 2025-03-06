@@ -9,21 +9,24 @@
         AllowsTransparency="True">
     <!-- Border for the modern card look -->
     <Border Background="White" CornerRadius="8" Padding="0"
-            Effect="{DynamicResource DropShadowEffect}"
-            MouseLeftButtonDown="Border_MouseLeftButtonDown">
+            Effect="{DynamicResource DropShadowEffect}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="40"/> <!-- Custom title bar -->
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="*"/>    <!-- Content area -->
             </Grid.RowDefinitions>
-            <!-- Custom Title Bar -->
-            <DockPanel Grid.Row="0" Background="{StaticResource PrimaryBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+            <!-- Custom Title Bar as Grid -->
+            <Grid Grid.Row="0" Background="{StaticResource PrimaryBrush}" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
                 <TextBlock Text="Login" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0" Foreground="White"/>
-                <Button Content="X" Width="40" Height="40" DockPanel.Dock="Right" 
+                <Button Content="X" Width="40" Height="40" Grid.Column="1" 
                         Click="CloseButton_Click"
                         Background="Transparent" BorderBrush="Transparent" 
-                        Foreground="White" FontWeight="Bold"/>
-            </DockPanel>
+                        Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+            </Grid>
             <!-- Content Area -->
             <StackPanel Grid.Row="1" Margin="20">
                 <TextBlock Name="ErrorTextBlock" Foreground="Red" Text="" Margin="0,0,0,10" HorizontalAlignment="Center"/>

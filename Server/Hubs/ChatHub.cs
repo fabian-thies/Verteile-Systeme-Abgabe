@@ -1,4 +1,5 @@
 ﻿// File: Server/Hubs/ChatHub.cs
+
 using Microsoft.AspNetCore.SignalR;
 using Server.Services;
 using System.Collections.Concurrent;
@@ -9,11 +10,15 @@ namespace Server.Hubs
     {
         private readonly IAuthService _authService;
         private readonly ILogger<ChatHub> _logger;
-        private static ConcurrentDictionary<string, string> _userConnections = new ConcurrentDictionary<string, string>();
+        private readonly IFileManagementService _fileService;
 
-        public ChatHub(IAuthService authService, ILogger<ChatHub> logger)
+        private static ConcurrentDictionary<string, string> _userConnections =
+            new ConcurrentDictionary<string, string>();
+
+        public ChatHub(IAuthService authService, ILogger<ChatHub> logger, IFileManagementService fileService)
         {
             _authService = authService;
+            _fileService = fileService;
             _logger = logger;
             _logger.LogInformation("ChatHub initialized.");
         }
@@ -27,6 +32,7 @@ namespace Server.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, username);
                 await Clients.All.SendAsync("ReceiveSystemMessage", $"{username} has logged in.");
             }
+
             return isAuthenticated;
         }
 
@@ -39,7 +45,8 @@ namespace Server.Hubs
         {
             if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
             {
-                _logger.LogInformation("Private message from {Sender} to {TargetUser}: {Message}", sender, targetUser, message);
+                _logger.LogInformation("Private message from {Sender} to {TargetUser}: {Message}", sender, targetUser,
+                    message);
                 await Clients.Group(targetUser).SendAsync("ReceivePrivateMessage", sender, message);
             }
         }
@@ -49,13 +56,15 @@ namespace Server.Hubs
             var username = _userConnections.GetValueOrDefault(Context.ConnectionId);
             if (string.IsNullOrEmpty(username))
             {
-                _logger.LogWarning("JoinGroup called but username is null for connection {ConnectionId}", Context.ConnectionId);
+                _logger.LogWarning("JoinGroup called but username is null for connection {ConnectionId}",
+                    Context.ConnectionId);
                 return;
             }
 
             _logger.LogInformation("{User} joining group {GroupName}", username, groupName);
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]", $"{username} has joined the group {groupName}.");
+            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]",
+                $"{username} has joined the group {groupName}.");
         }
 
         public async Task LeaveGroup(string groupName)
@@ -63,27 +72,32 @@ namespace Server.Hubs
             var username = _userConnections.GetValueOrDefault(Context.ConnectionId);
             if (string.IsNullOrEmpty(username))
             {
-                _logger.LogWarning("LeaveGroup called but username is null for connection {ConnectionId}", Context.ConnectionId);
+                _logger.LogWarning("LeaveGroup called but username is null for connection {ConnectionId}",
+                    Context.ConnectionId);
                 return;
             }
 
             _logger.LogInformation("{User} leaving group {GroupName}", username, groupName);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
-            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]", $"{username} has left the group {groupName}.");
+            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]",
+                $"{username} has left the group {groupName}.");
         }
 
         public async Task SendGroupMessage(string groupName, string message)
         {
             if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
             {
-                _logger.LogInformation("Group message from {Sender} in {GroupName}: {Message}", sender, groupName, message);
+                _logger.LogInformation("Group message from {Sender} in {GroupName}: {Message}", sender, groupName,
+                    message);
                 await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", sender, message);
             }
         }
 
         public async Task SendWhiteboardLine(string target, bool isGroup, double x1, double y1, double x2, double y2)
         {
-            _logger.LogInformation("Whiteboard line drawn for target {target} (isGroup: {isGroup}): ({x1}, {y1}) to ({x2}, {y2})", target, isGroup, x1, y1, x2, y2);
+            _logger.LogInformation(
+                "Whiteboard line drawn for target {target} (isGroup: {isGroup}): ({x1}, {y1}) to ({x2}, {y2})", target,
+                isGroup, x1, y1, x2, y2);
             await Clients.Group(target).SendAsync("ReceiveWhiteboardLine", x1, y1, x2, y2);
         }
 
@@ -97,7 +111,8 @@ namespace Server.Hubs
         {
             if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
             {
-                _logger.LogInformation("User {Sender} is requesting to send the whiteboard plugin to {TargetUser}.", sender, targetUser);
+                _logger.LogInformation("User {Sender} is requesting to send the whiteboard plugin to {TargetUser}.",
+                    sender, targetUser);
                 await Clients.Group(targetUser).SendAsync("ReceiveWhiteboardPluginRequest", sender);
             }
         }
@@ -129,7 +144,28 @@ namespace Server.Hubs
             {
                 await Clients.All.SendAsync("ReceiveSystemMessage", $"{username} has logged out.");
             }
+
             await base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task<int> UploadDocument(string filename, string base64Content, string metadata)
+        {
+            if (!_userConnections.TryGetValue(Context.ConnectionId, out var author))
+            {
+                _logger.LogWarning("Unauthenticated upload attempt.");
+                return -1; // Or throw an exception/return a specific error code.
+            }
+
+            int documentId = await _fileService.UploadFileAsync(filename, base64Content, author, metadata);
+            await Clients.All.SendAsync("ReceiveSystemMessage", $"{author} uploaded document {filename}.");
+            return documentId;
+        }
+
+        // Method for downloading a document.
+        public async Task<string> DownloadDocument(int documentId)
+        {
+            string base64Content = await _fileService.DownloadFileAsync(documentId);
+            return base64Content;
         }
     }
 }

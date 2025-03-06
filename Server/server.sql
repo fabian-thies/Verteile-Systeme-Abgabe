@@ -1,4 +1,4 @@
-﻿﻿-- Tabelle für Benutzer
+﻿-- Tabelle für Benutzer
 CREATE TABLE users
 (
     id            SERIAL PRIMARY KEY,
@@ -31,4 +31,17 @@ CREATE TABLE messages
     group_id    INT, -- bei Gruppenchats
     content     TEXT      NOT NULL,
     timestamp   TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Table for documents
+CREATE TABLE documents
+(
+    id SERIAL PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    author VARCHAR(50) NOT NULL,
+    upload_timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+    last_modified TIMESTAMP NOT NULL DEFAULT NOW(),
+    version INTEGER NOT NULL DEFAULT 1,
+    file_path TEXT NOT NULL,
+    metadata JSONB  -- Additional metadata as JSON (e.g. involved users, last change info, etc.)
 );

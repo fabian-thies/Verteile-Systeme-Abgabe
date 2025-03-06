@@ -1,6 +1,4 @@
-﻿// MainWindow.xaml.cs
-
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Windows;
@@ -27,18 +25,22 @@ namespace Client
             _currentlyLoadedPlugins = currentlyLoaded ?? Array.Empty<IPlugin>();
         }
 
+        // New helper method to check if a plugin is already loaded.
+        public bool IsPluginLoaded(string pluginName)
+        {
+            return _currentlyLoadedPlugins.Any(p => p.Name.Equals(pluginName, StringComparison.OrdinalIgnoreCase));
+        }
+
         private void RegisterSignalREvents()
         {
-            _connection.On<string, string>("ReceivePrivateMessage",
-                (sender, message) =>
-                {
-                    Dispatcher.Invoke(() => { PrivateChatListBox.Items.Add(sender + ": " + message); });
-                });
-            _connection.On<string, string>("ReceiveGroupMessage",
-                (sender, message) =>
-                {
-                    Dispatcher.Invoke(() => { GroupChatListBox.Items.Add(sender + ": " + message); });
-                });
+            _connection.On<string, string>("ReceivePrivateMessage", (sender, message) =>
+            {
+                Dispatcher.Invoke(() => { PrivateChatListBox.Items.Add(sender + ": " + message); });
+            });
+            _connection.On<string, string>("ReceiveGroupMessage", (sender, message) =>
+            {
+                Dispatcher.Invoke(() => { GroupChatListBox.Items.Add(sender + ": " + message); });
+            });
             _connection.On<string>("ReceiveSystemMessage", message =>
             {
                 Dispatcher.Invoke(() =>
@@ -47,14 +49,20 @@ namespace Client
                     GroupChatListBox.Items.Add("[System]: " + message);
                 });
             });
-            // When a whiteboard plugin request is received, ask if the plugin should be loaded automatically.
+
+            // Angepasster Handler: Nur anzeigen, wenn das Whiteboard-Plugin noch nicht geladen ist.
             _connection.On<string>("ReceiveWhiteboardPluginRequest", async requester =>
             {
                 await Dispatcher.InvokeAsync(async () =>
                 {
+                    // Check if whiteboard plugin is already loaded
+                    if (IsPluginLoaded("Whiteboard"))
+                    {
+                        // Plugin already loaded – do nothing.
+                        return;
+                    }
                     var result = MessageBox.Show(
-                        requester +
-                        " invites you to join a whiteboard session.\nDo you want to automatically load the plugin?",
+                        requester + " invites you to join a whiteboard session.\nDo you want to automatically load the plugin?",
                         "Whiteboard Plugin Request", MessageBoxButton.YesNo, MessageBoxImage.Question);
                     if (result == MessageBoxResult.Yes)
                     {
@@ -64,7 +72,7 @@ namespace Client
                 });
             });
 
-// When a plugin file is received, save it directly to the Plugins folder.
+            // When a plugin file is received, save it directly to the Plugins folder.
             _connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
             {
                 Dispatcher.Invoke(() =>
@@ -72,15 +80,14 @@ namespace Client
                     try
                     {
                         byte[] pluginBytes = Convert.FromBase64String(base64Content);
-                        string pluginDir = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
-                        if (!System.IO.Directory.Exists(pluginDir))
-                            System.IO.Directory.CreateDirectory(pluginDir);
-                        string pluginFilePath = System.IO.Path.Combine(pluginDir, "WhiteboardPlugin.dll");
-                        System.IO.File.WriteAllBytes(pluginFilePath, pluginBytes);
+                        string pluginDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+                        if (!Directory.Exists(pluginDir))
+                            Directory.CreateDirectory(pluginDir);
+                        string pluginFilePath = Path.Combine(pluginDir, "WhiteboardPlugin.dll");
+                        File.WriteAllBytes(pluginFilePath, pluginBytes);
                         MessageBox.Show("Whiteboard plugin has been automatically loaded.",
                             "Plugin Loaded", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                        // Optional: trigger a plugin reload if Du eine solche Logik implementiert hast.
+                        // Optional: Trigger automatic plugin reload here.
                     }
                     catch (Exception ex)
                     {
@@ -90,18 +97,17 @@ namespace Client
                 });
             });
 
-// Handler for sending the plugin file when requested by another client (remains unverändert)
+            // Handler for sending the plugin file when requested by another client (unverändert)
             _connection.On<string>("ReceivePluginFileRequest", async (targetUser) =>
             {
                 await Dispatcher.InvokeAsync(async () =>
                 {
                     try
                     {
-                        string pluginPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins",
-                            "WhiteboardPlugin.dll");
-                        if (System.IO.File.Exists(pluginPath))
+                        string pluginPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", "WhiteboardPlugin.dll");
+                        if (File.Exists(pluginPath))
                         {
-                            byte[] pluginBytes = System.IO.File.ReadAllBytes(pluginPath);
+                            byte[] pluginBytes = File.ReadAllBytes(pluginPath);
                             string base64Content = Convert.ToBase64String(pluginBytes);
                             await _connection.InvokeAsync("SendPluginFile", targetUser, base64Content);
                         }

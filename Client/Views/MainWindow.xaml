@@ -1,11 +1,17 @@
 ﻿<Window x:Class="Client.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Client"
+        xmlns:conv="clr-namespace:Client.Converters"
         xmlns:views="clr-namespace:Client.Views"
         Title="Chat Application" Height="600" Width="900"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource WindowBackgroundBrush}"
         FontFamily="Segoe UI">
+  <Window.Resources>
+      <!-- Register the SelfMessageConverter -->
+      <conv:SelfMessageConverter x:Key="SelfMessageConverter"/>
+  </Window.Resources>
   <Grid>
     <TabControl Name="ChatTabControl" Margin="10">
       <TabItem Header="Private Chat">
@@ -22,11 +28,15 @@
           <ListBox Name="PrivateChatListBox" Grid.Row="1" ItemContainerStyle="{StaticResource ChatMessageStyle}">
             <ListBox.ItemTemplate>
               <DataTemplate>
-                <!-- English comment: Chat bubble style for messages -->
-                <Border Background="{StaticResource ChatBubbleBackground}" 
+                <Border x:Name="MessageBorder" Background="{StaticResource ChatBubbleBackground}" 
                         CornerRadius="8" Padding="8" Margin="4">
                   <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
                 </Border>
+                <DataTemplate.Triggers>
+                  <DataTrigger Binding="{Binding Converter={StaticResource SelfMessageConverter}}" Value="True">
+                    <Setter TargetName="MessageBorder" Property="Background" Value="{StaticResource ChatBubbleAccent}"/>
+                  </DataTrigger>
+                </DataTemplate.Triggers>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>
@@ -53,10 +63,15 @@
           <ListBox Name="GroupChatListBox" Grid.Row="1" ItemContainerStyle="{StaticResource ChatMessageStyle}">
             <ListBox.ItemTemplate>
               <DataTemplate>
-                <Border Background="{StaticResource ChatBubbleBackground}" 
+                <Border x:Name="MessageBorder" Background="{StaticResource ChatBubbleBackground}" 
                         CornerRadius="8" Padding="8" Margin="4">
                   <TextBlock Text="{Binding}" TextWrapping="Wrap"/>
                 </Border>
+                <DataTemplate.Triggers>
+                  <DataTrigger Binding="{Binding Converter={StaticResource SelfMessageConverter}}" Value="True">
+                    <Setter TargetName="MessageBorder" Property="Background" Value="{StaticResource ChatBubbleAccent}"/>
+                  </DataTrigger>
+                </DataTemplate.Triggers>
               </DataTemplate>
             </ListBox.ItemTemplate>
           </ListBox>

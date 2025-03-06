@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.Windows.Input;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace Client.Views;
@@ -63,6 +64,19 @@ public partial class LoginWindow : Window
     {
         var registerWindow = new RegisterWindow();
         registerWindow.Show();
+        Close();
+    }
+    
+    private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            DragMove();
+        }
+    }
+
+    private void CloseButton_Click(object sender, RoutedEventArgs e)
+    {
         Close();
     }
 }

@@ -7,11 +7,24 @@
         FontFamily="Segoe UI"
         WindowStyle="None"
         AllowsTransparency="True">
-    <!-- English comment: Use a Border with a drop shadow effect for a modern card look -->
+    <!-- English comment: Use a Border with a drop shadow effect for a modern card look and enable dragging -->
     <Border Background="White" CornerRadius="8" Padding="20"
-            Effect="{DynamicResource DropShadowEffect}">
+            Effect="{DynamicResource DropShadowEffect}"
+            MouseLeftButtonDown="Border_MouseLeftButtonDown">
         <Grid>
-            <StackPanel>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <!-- Custom Title Bar with Close Button -->
+            <DockPanel Grid.Row="0" LastChildFill="True">
+                <TextBlock Text="Login" FontWeight="Bold" FontSize="16" VerticalAlignment="Center"/>
+                <Button Content="X" Width="30" Height="30" DockPanel.Dock="Right" 
+                        Click="CloseButton_Click"
+                        Background="Transparent" BorderBrush="Transparent" 
+                        Foreground="Gray" FontWeight="Bold"/>
+            </DockPanel>
+            <StackPanel Grid.Row="1" Margin="0,10,0,0">
                 <TextBlock Name="ErrorTextBlock" Foreground="Red" Text="" Margin="0,0,0,10" HorizontalAlignment="Center"/>
                 <TextBlock Text="Username:" Margin="0,0,0,5"/>
                 <TextBox Name="UsernameTextBox" Margin="0,0,0,10"/>

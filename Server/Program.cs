@@ -4,7 +4,11 @@ using Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    // 50 MB
+    options.MaximumReceiveMessageSize = 1024L * 1024L * 50L;
+});
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFileManagementService, FileManagementService>();

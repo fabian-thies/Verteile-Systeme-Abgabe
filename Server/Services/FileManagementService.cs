@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace Server.Services
 {
@@ -67,8 +68,10 @@ namespace Server.Services
                         cmd.Parameters.AddWithValue("filename", filename);
                         cmd.Parameters.AddWithValue("author", author);
                         cmd.Parameters.AddWithValue("file_path", filePath);
-                        // Use an empty JSON object if metadata is null.
-                        cmd.Parameters.AddWithValue("metadata", metadataJson ?? "{}");
+                        cmd.Parameters.Add(new NpgsqlParameter("metadata", NpgsqlDbType.Jsonb)
+                        {
+                            Value = metadataJson ?? "{}"
+                        });
                         documentId = (int)await cmd.ExecuteScalarAsync();
                     }
                 }

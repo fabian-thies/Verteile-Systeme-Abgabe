@@ -56,18 +56,29 @@
 
         <!-- Style for chat messages (ListBoxItem) -->
         <Style x:Key="ChatMessageStyle" TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Padding" Value="5"/>
             <Setter Property="Margin" Value="0,4"/>
-            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <ContentPresenter />
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="BorderThickness" Value="1"/>
+                                <Setter Property="BorderBrush" Value="Gray"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-        </Style>
+        </Style> 
 
         <!-- Drop shadow effect for a modern card look -->
         <DropShadowEffect x:Key="DropShadowEffect" Color="Black" BlurRadius="10" Opacity="0.2"/>

@@ -67,6 +67,7 @@ public partial class LoginWindow : Window
         Close();
     }
     
+// Allows dragging of the window from the Border area.
     private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Left)
@@ -75,8 +76,19 @@ public partial class LoginWindow : Window
         }
     }
 
+// Allows dragging via the title bar.
+    private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Left)
+        {
+            DragMove();
+        }
+    }
+
+// Closes the window when the close button is clicked.
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
         Close();
     }
+
 }

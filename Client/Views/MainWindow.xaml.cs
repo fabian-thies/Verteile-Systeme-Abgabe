@@ -133,8 +133,9 @@ namespace Client
                     string base64Content = Convert.ToBase64String(fileBytes);
                     string filename = Path.GetFileName(filePath);
                     string metadata = "{}";
-                    int documentId = await _connection.InvokeAsync<int>("UploadDocument", filename, base64Content, metadata);
-                    UploadStatusTextBlock.Text = $"File uploaded successfully. Document ID: {documentId}";
+                    string author = "MyUser";
+                    int documentId = await _connection.InvokeAsync<int>("UploadDocument", filename, base64Content, author, metadata);
+                    UploadStatusTextBlock.Text = "File uploaded successfully. Document ID: " + documentId;
                 }
                 catch (Exception ex)
                 {
@@ -194,7 +195,7 @@ namespace Client
                 {
                     foreach (var doc in versions)
                     {
-                        FileVersionsListBox.Items.Add($"FileID: {doc.Id}, Version: {doc.Version}, Uploaded: {doc.UploadTimestamp}");
+                        FileVersionsListBox.Items.Add("FileID: " + doc.Id + ", Version: " + doc.Version + ", Uploaded: " + doc.UploadTimestamp);
                     }
                 }
                 else
@@ -218,7 +219,7 @@ namespace Client
                 {
                     foreach (var doc in allFiles)
                     {
-                        AllFilesListBox.Items.Add($"FileID: {doc.Id}, Name: {doc.Filename}, Version: {doc.Version}, Author: {doc.Author}, Uploaded: {doc.UploadTimestamp}");
+                        AllFilesListBox.Items.Add("FileID: " + doc.Id + ", Name: " + doc.Filename + ", Version: " + doc.Version + ", Author: " + doc.Author + ", Uploaded: " + doc.UploadTimestamp);
                     }
                 }
                 else

@@ -8,13 +8,9 @@ using NpgsqlTypes;
 
 namespace Server.Services
 {
-    // Interface for file management functionality.
     public interface IFileManagementService
     {
-        // Uploads a file (given as a Base64 string) and inserts its metadata into the database.
         Task<int> UploadFileAsync(string filename, string base64Content, string author, string metadataJson);
-
-        // Downloads a file by retrieving its path from the database and reading the file from disk.
         Task<string> DownloadFileAsync(int documentId);
     }
 
@@ -28,10 +24,7 @@ namespace Server.Services
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection");
             _logger = logger;
-            // Get the file storage path from configuration or default to "UploadedFiles" directory.
             _fileStoragePath = configuration["FileStoragePath"] ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UploadedFiles");
-
-            // Create the storage directory if it doesn't exist.
             if (!Directory.Exists(_fileStoragePath))
             {
                 Directory.CreateDirectory(_fileStoragePath);
@@ -41,48 +34,43 @@ namespace Server.Services
 
         public async Task<int> UploadFileAsync(string filename, string base64Content, string author, string metadataJson)
         {
-            try
+            byte[] fileBytes = Convert.FromBase64String(base64Content);
+            string uniqueFileName = $"{Guid.NewGuid()}_{filename}";
+            string filePath = Path.Combine(_fileStoragePath, uniqueFileName);
+            await File.WriteAllBytesAsync(filePath, fileBytes);
+
+            int newVersion = 1;
+            using (var conn = new NpgsqlConnection(_connectionString))
             {
-                // Convert the Base64 string to a byte array.
-                byte[] fileBytes = Convert.FromBase64String(base64Content);
-
-                // Generate a unique file name to avoid conflicts.
-                string uniqueFileName = $"{Guid.NewGuid()}_{filename}";
-                string filePath = Path.Combine(_fileStoragePath, uniqueFileName);
-
-                // Save the file to disk.
-                await File.WriteAllBytesAsync(filePath, fileBytes);
-                _logger.LogInformation("File saved to disk: {filePath}", filePath);
-
-                int documentId;
-                // Insert the file metadata into the database.
-                using (var conn = new NpgsqlConnection(_connectionString))
+                await conn.OpenAsync();
+                string versionSql = "SELECT MAX(version) FROM documents WHERE filename = @filename AND author = @author";
+                using (var versionCmd = new NpgsqlCommand(versionSql, conn))
                 {
-                    await conn.OpenAsync();
-                    string sql = @"
-                        INSERT INTO documents (filename, author, file_path, metadata)
-                        VALUES (@filename, @author, @file_path, @metadata)
-                        RETURNING id;";
-                    using (var cmd = new NpgsqlCommand(sql, conn))
+                    versionCmd.Parameters.AddWithValue("filename", filename);
+                    versionCmd.Parameters.AddWithValue("author", author);
+                    var result = await versionCmd.ExecuteScalarAsync();
+                    if (result != DBNull.Value && result != null)
                     {
-                        cmd.Parameters.AddWithValue("filename", filename);
-                        cmd.Parameters.AddWithValue("author", author);
-                        cmd.Parameters.AddWithValue("file_path", filePath);
-                        cmd.Parameters.Add(new NpgsqlParameter("metadata", NpgsqlDbType.Jsonb)
-                        {
-                            Value = metadataJson ?? "{}"
-                        });
-                        documentId = (int)await cmd.ExecuteScalarAsync();
+                        newVersion = Convert.ToInt32(result) + 1;
                     }
                 }
-
-                _logger.LogInformation("File metadata inserted into database with document id: {id}", documentId);
-                return documentId;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error uploading file: {filename}", filename);
-                throw;
+                string sql = @"
+                    INSERT INTO documents (filename, author, file_path, metadata, version, last_modified)
+                    VALUES (@filename, @author, @file_path, @metadata, @version, NOW())
+                    RETURNING id;";
+                using (var cmd = new NpgsqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("filename", filename);
+                    cmd.Parameters.AddWithValue("author", author);
+                    cmd.Parameters.AddWithValue("file_path", filePath);
+                    cmd.Parameters.Add(new NpgsqlParameter("metadata", NpgsqlDbType.Jsonb)
+                    {
+                        Value = string.IsNullOrEmpty(metadataJson) ? "{}" : metadataJson
+                    });
+                    cmd.Parameters.AddWithValue("version", newVersion);
+                    int documentId = (int)await cmd.ExecuteScalarAsync();
+                    return documentId;
+                }
             }
         }
 
@@ -91,7 +79,6 @@ namespace Server.Services
             try
             {
                 string filePath = null;
-                // Retrieve the file path from the database.
                 using (var conn = new NpgsqlConnection(_connectionString))
                 {
                     await conn.OpenAsync();
@@ -108,14 +95,11 @@ namespace Server.Services
                         filePath = result.ToString();
                     }
                 }
-
                 if (!File.Exists(filePath))
                 {
                     _logger.LogWarning("File not found on disk: {filePath}", filePath);
                     return null;
                 }
-
-                // Read the file and convert its content to a Base64 string.
                 byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
                 string base64Content = Convert.ToBase64String(fileBytes);
                 return base64Content;

@@ -67,9 +67,9 @@
                                 <RowDefinition Height="Auto" /> <!-- Message input -->
                             </Grid.RowDefinitions>
 
-                            <!-- Open Groups List -->
+                            <!-- Open Groups List with double-click handler -->
                             <GroupBox Header="Open Groups" Grid.Row="0" Margin="0,0,0,10">
-                                <ListBox Name="OpenGroupsListBox" />
+                                <ListBox Name="OpenGroupsListBox" MouseDoubleClick="OpenGroupsListBox_MouseDoubleClick" />
                             </GroupBox>
 
                             <!-- Join/Leave Group Controls -->

@@ -85,6 +85,13 @@ public class ChatHub : Hub
             return;
         }
 
+        // Check if the user is already in the group to prevent duplicate join messages
+        if (_groups.TryGetValue(groupName, out var members) && members.Contains(Context.ConnectionId))
+        {
+            _logger.LogInformation("User {Username} is already in group {GroupName}", username, groupName);
+            return;
+        }
+
         _logger.LogInformation("User {Username} joining group {GroupName}", username, groupName);
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
 

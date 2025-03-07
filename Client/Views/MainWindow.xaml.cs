@@ -75,9 +75,16 @@ public partial class MainWindow : Window
             Dispatcher.Invoke(() =>
             {
                 OpenGroupsListBox.Items.Clear();
-                foreach (var group in groupList)
+                if (groupList.Count == 0)
                 {
-                    OpenGroupsListBox.Items.Add(group);
+                    OpenGroupsListBox.Items.Add("No open groups");
+                }
+                else
+                {
+                    foreach (var group in groupList)
+                    {
+                        OpenGroupsListBox.Items.Add(group);
+                    }
                 }
             });
         });
@@ -179,9 +186,16 @@ public partial class MainWindow : Window
             Dispatcher.Invoke(() =>
             {
                 OpenGroupsListBox.Items.Clear();
-                foreach (var group in groups)
+                if (groups.Count == 0)
                 {
-                    OpenGroupsListBox.Items.Add(group);
+                    OpenGroupsListBox.Items.Add("No open groups");
+                }
+                else
+                {
+                    foreach (var group in groups)
+                    {
+                        OpenGroupsListBox.Items.Add(group);
+                    }
                 }
             });
             _logger.LogInformation("Loaded open groups on startup.");
@@ -189,6 +203,14 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error loading open groups on startup.");
+        }
+    }
+    
+    private void OpenGroupsListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (OpenGroupsListBox.SelectedItem is string selectedGroup && selectedGroup != "No open groups")
+        {
+            GroupNameTextBox.Text = selectedGroup;
         }
     }
     

@@ -6,8 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSignalR(options =>
 {
-    // 50 MB
-    options.MaximumReceiveMessageSize = 1024L * 1024L * 50L;
+    options.MaximumReceiveMessageSize = 1024L * 1024L * 50L; // 50 MB
 });
 
 builder.Services.AddSignalR();
@@ -20,7 +19,6 @@ var app = builder.Build();
 var connectionString = app.Configuration.GetConnectionString("DefaultConnection");
 var dbConnected = false;
 while (!dbConnected)
-{
     try
     {
         using (var conn = new NpgsqlConnection(connectionString))
@@ -35,7 +33,6 @@ while (!dbConnected)
         Console.Error.WriteLine("Database connection failed: " + ex.Message);
         await Task.Delay(TimeSpan.FromSeconds(60));
     }
-}
 
 app.MapHub<ChatHub>("/chatHub");
 app.Run();

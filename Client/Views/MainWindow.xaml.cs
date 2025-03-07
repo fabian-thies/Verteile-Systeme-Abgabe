@@ -25,6 +25,7 @@ public partial class MainWindow : Window
         _logger.LogInformation("MainWindow initialized and SignalR connection set.");
 
         RegisterSignalREvents();
+        LoadOpenGroups();
     }
 
     public void UpdateLoadedPlugins(IPlugin[] currentlyLoaded)
@@ -65,6 +66,19 @@ public partial class MainWindow : Window
             {
                 PrivateChatListBox.Items.Add("[System]: " + message);
                 GroupChatListBox.Items.Add("[System]: " + message);
+            });
+        });
+
+        _connection.On<List<string>>("ReceiveGroupList", groupList =>
+        {
+            _logger.LogInformation("Received group list update with {Count} groups.", groupList.Count);
+            Dispatcher.Invoke(() =>
+            {
+                OpenGroupsListBox.Items.Clear();
+                foreach (var group in groupList)
+                {
+                    OpenGroupsListBox.Items.Add(group);
+                }
             });
         });
 
@@ -157,6 +171,27 @@ public partial class MainWindow : Window
         });
     }
 
+    private async void LoadOpenGroups()
+    {
+        try
+        {
+            var groups = await _connection.InvokeAsync<List<string>>("GetOpenGroups");
+            Dispatcher.Invoke(() =>
+            {
+                OpenGroupsListBox.Items.Clear();
+                foreach (var group in groups)
+                {
+                    OpenGroupsListBox.Items.Add(group);
+                }
+            });
+            _logger.LogInformation("Loaded open groups on startup.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading open groups on startup.");
+        }
+    }
+    
     private async void UploadFileButton_Click(object sender, RoutedEventArgs e)
     {
         _logger.LogInformation("UploadFileButton clicked.");

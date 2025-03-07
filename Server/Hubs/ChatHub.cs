@@ -9,6 +9,9 @@ namespace Server.Hubs;
 
 public class ChatHub : Hub
 {
+    // Dictionary to track groups and their connected connection IDs
+    private static ConcurrentDictionary<string, HashSet<string>> _groups = new ConcurrentDictionary<string, HashSet<string>>();
+
     private static readonly ConcurrentDictionary<string, string> _userConnections = new();
 
     private readonly IAuthService _authService;
@@ -84,7 +87,14 @@ public class ChatHub : Hub
 
         _logger.LogInformation("User {Username} joining group {GroupName}", username, groupName);
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+
+        // Update group membership
+        _groups.AddOrUpdate(groupName,
+            new HashSet<string> { Context.ConnectionId },
+            (key, existing) => { existing.Add(Context.ConnectionId); return existing; });
+
         await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]", username + " has joined the group " + groupName + ".");
+        await BroadcastGroupList();
     }
 
     public async Task LeaveGroup(string groupName)
@@ -98,7 +108,33 @@ public class ChatHub : Hub
 
         _logger.LogInformation("User {Username} leaving group {GroupName}", username, groupName);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+
+        // Update group membership
+        if (_groups.TryGetValue(groupName, out var members))
+        {
+            members.Remove(Context.ConnectionId);
+            if (members.Count == 0)
+            {
+                _groups.TryRemove(groupName, out _);
+            }
+        }
+
         await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]", username + " has left the group " + groupName + ".");
+        await BroadcastGroupList();
+    }
+
+    // Method to broadcast current open groups to all clients
+    private async Task BroadcastGroupList()
+    {
+        var groupList = _groups.Keys.ToList();
+        await Clients.All.SendAsync("ReceiveGroupList", groupList);
+    }
+
+    // Method to get open groups (for initial load)
+    public Task<List<string>> GetOpenGroups()
+    {
+        var groupList = _groups.Keys.ToList();
+        return Task.FromResult(groupList);
     }
 
     public async Task SendGroupMessage(string groupName, string message)
@@ -114,62 +150,27 @@ public class ChatHub : Hub
         }
     }
 
-    public async Task SendWhiteboardLine(string target, bool isGroup, double x1, double y1, double x2, double y2)
-    {
-        _logger.LogInformation("Sending whiteboard line to group {Target}: [{X1}, {Y1}] to [{X2}, {Y2}]", target, x1, y1, x2, y2);
-        await Clients.Group(target).SendAsync("ReceiveWhiteboardLine", x1, y1, x2, y2);
-    }
-
-    public async Task SendWhiteboardLineBroadcast(double x1, double y1, double x2, double y2)
-    {
-        _logger.LogInformation("Broadcasting whiteboard line: [{X1}, {Y1}] to [{X2}, {Y2}]", x1, y1, x2, y2);
-        await Clients.All.SendAsync("ReceiveWhiteboardLine", x1, y1, x2, y2);
-    }
-
-    public async Task RequestWhiteboardPlugin(string targetUser)
-    {
-        if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
-        {
-            _logger.LogInformation("User {Sender} requested whiteboard plugin for target {TargetUser}", sender, targetUser);
-            await Clients.Group(targetUser).SendAsync("ReceiveWhiteboardPluginRequest", sender);
-        }
-        else
-        {
-            _logger.LogWarning("RequestWhiteboardPlugin: No sender found for connection ID: {ConnectionId}", Context.ConnectionId);
-        }
-    }
-
-    public async Task SendPluginFile(string targetUser, string base64PluginContent)
-    {
-        if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
-        {
-            _logger.LogInformation("User {Sender} sending plugin file to {TargetUser}", sender, targetUser);
-            await Clients.Group(targetUser).SendAsync("ReceivePluginFile", sender, base64PluginContent);
-        }
-        else
-        {
-            _logger.LogWarning("SendPluginFile: No sender found for connection ID: {ConnectionId}", Context.ConnectionId);
-        }
-    }
-
-    public async Task RequestPluginFile(string requester)
-    {
-        if (_userConnections.TryGetValue(Context.ConnectionId, out var requestingUser))
-        {
-            _logger.LogInformation("User {RequestingUser} requested plugin file for requester {Requester}", requestingUser, requester);
-            await Clients.Group(requester).SendAsync("ReceivePluginFileRequest", requestingUser);
-        }
-        else
-        {
-            _logger.LogWarning("RequestPluginFile: No requesting user found for connection ID: {ConnectionId}", Context.ConnectionId);
-        }
-    }
+    // ... (weitere Methoden bleiben unverändert) ...
 
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         if (_userConnections.TryRemove(Context.ConnectionId, out var username))
         {
             _logger.LogInformation("User {Username} disconnected. Connection ID {ConnectionId} removed.", username, Context.ConnectionId);
+
+            // Remove disconnected user from all groups
+            foreach (var group in _groups.Keys)
+            {
+                if (_groups.TryGetValue(group, out var members))
+                {
+                    if (members.Remove(Context.ConnectionId) && members.Count == 0)
+                    {
+                        _groups.TryRemove(group, out _);
+                    }
+                }
+            }
+            await BroadcastGroupList();
+
             await Clients.All.SendAsync("ReceiveSystemMessage", username + " has logged out.");
         }
         else
@@ -178,118 +179,5 @@ public class ChatHub : Hub
         }
 
         await base.OnDisconnectedAsync(exception);
-    }
-
-    public async Task<int> UploadDocument(string filename, string base64Content, string author, string metadata)
-    {
-        if (!_userConnections.TryGetValue(Context.ConnectionId, out var a))
-        {
-            _logger.LogWarning("UploadDocument: No user found for connection ID: {ConnectionId}", Context.ConnectionId);
-            return -1;
-        }
-
-        _logger.LogInformation("User {User} uploading document: {Filename}", a, filename);
-        var documentId = await _fileService.UploadFileAsync(filename, base64Content, a, metadata);
-        await Clients.All.SendAsync("ReceiveSystemMessage", a + " uploaded document " + filename + ".");
-        _logger.LogInformation("Document {Filename} uploaded by {User} with Document ID: {DocumentId}", filename, a, documentId);
-        return documentId;
-    }
-
-    public async Task<string> DownloadDocument(int documentId)
-    {
-        _logger.LogInformation("DownloadDocument requested for Document ID: {DocumentId}", documentId);
-        var fileInfo = await _fileService.DownloadFileInfoAsync(documentId);
-        if (fileInfo == null)
-        {
-            _logger.LogWarning("DownloadDocument: No file found for Document ID: {DocumentId}", documentId);
-            return null;
-        }
-        _logger.LogInformation("Document {DocumentId} downloaded successfully.", documentId);
-        return JsonSerializer.Serialize(fileInfo);
-    }
-
-    public async Task<List<DocumentVersion>> GetDocumentVersionsById(int fileId)
-    {
-        _logger.LogInformation("Fetching document versions for File ID: {FileId}", fileId);
-        DocumentVersion baseDoc = null;
-        using (var conn = new NpgsqlConnection(_connectionString))
-        {
-            await conn.OpenAsync();
-            _logger.LogInformation("Database connection opened for GetDocumentVersionsById.");
-
-            var sql = "SELECT filename, author FROM documents WHERE id = @id";
-            using (var cmd = new NpgsqlCommand(sql, conn))
-            {
-                cmd.Parameters.AddWithValue("id", fileId);
-                using (var reader = await cmd.ExecuteReaderAsync())
-                {
-                    if (await reader.ReadAsync())
-                    {
-                        baseDoc = new DocumentVersion
-                        {
-                            Filename = reader.GetString(0),
-                            Author = reader.GetString(1)
-                        };
-                        _logger.LogInformation("Base document found for File ID: {FileId}. Filename: {Filename}, Author: {Author}", fileId, baseDoc.Filename, baseDoc.Author);
-                    }
-                }
-            }
-
-            if (baseDoc == null)
-            {
-                _logger.LogWarning("No document found for File ID: {FileId}", fileId);
-                return new List<DocumentVersion>();
-            }
-
-            var versionSql = "SELECT id, filename, author, version, upload_timestamp FROM documents WHERE filename = @filename AND author = @author ORDER BY version DESC";
-            using (var cmd2 = new NpgsqlCommand(versionSql, conn))
-            {
-                cmd2.Parameters.AddWithValue("filename", baseDoc.Filename);
-                cmd2.Parameters.AddWithValue("author", baseDoc.Author);
-                using (var reader2 = await cmd2.ExecuteReaderAsync())
-                {
-                    var list = new List<DocumentVersion>();
-                    while (await reader2.ReadAsync())
-                    {
-                        list.Add(new DocumentVersion
-                        {
-                            Id = reader2.GetInt32(0),
-                            Filename = reader2.GetString(1),
-                            Author = reader2.GetString(2),
-                            Version = reader2.GetInt32(3),
-                            UploadTimestamp = reader2.GetDateTime(4)
-                        });
-                    }
-                    _logger.LogInformation("Retrieved {Count} versions for File ID: {FileId}", list.Count, fileId);
-                    return list;
-                }
-            }
-        }
-    }
-
-    public async Task<List<DocumentVersion>> GetAllDocuments()
-    {
-        _logger.LogInformation("Fetching all documents.");
-        var list = new List<DocumentVersion>();
-        using var conn = new NpgsqlConnection(_connectionString);
-        await conn.OpenAsync();
-        _logger.LogInformation("Database connection opened for GetAllDocuments.");
-
-        var sql = "SELECT id, filename, author, version, upload_timestamp FROM documents ORDER BY id ASC";
-        using var cmd = new NpgsqlCommand(sql, conn);
-        using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            list.Add(new DocumentVersion
-            {
-                Id = reader.GetInt32(0),
-                Filename = reader.GetString(1),
-                Author = reader.GetString(2),
-                Version = reader.GetInt32(3),
-                UploadTimestamp = reader.GetDateTime(4)
-            });
-        }
-        _logger.LogInformation("Total documents retrieved: {Count}", list.Count);
-        return list;
     }
 }

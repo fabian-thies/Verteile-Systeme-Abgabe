@@ -141,8 +141,9 @@ namespace Server.Hubs
 
         public async Task<string> DownloadDocument(int documentId)
         {
-            string base64Content = await _fileService.DownloadFileAsync(documentId);
-            return base64Content;
+            var fileInfo = await _fileService.DownloadFileInfoAsync(documentId);
+            if (fileInfo == null) return null;
+            return System.Text.Json.JsonSerializer.Serialize(fileInfo);
         }
 
         public async Task<List<DocumentVersion>> GetDocumentVersionsById(int fileId)

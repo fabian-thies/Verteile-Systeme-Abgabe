@@ -17,6 +17,12 @@ namespace Client
         public int Version { get; set; }
         public DateTime UploadTimestamp { get; set; }
     }
+    
+    public class FileDownloadInfo
+    {
+        public string FileName { get; set; }
+        public string Base64Content { get; set; }
+    }
 
     public partial class MainWindow : Window
     {
@@ -150,21 +156,22 @@ namespace Client
             {
                 try
                 {
-                    string base64Content = await _connection.InvokeAsync<string>("DownloadDocument", documentId);
-                    if (base64Content == null)
+                    string jsonResponse = await _connection.InvokeAsync<string>("DownloadDocument", documentId);
+                    if (jsonResponse == null)
                     {
                         DownloadStatusTextBlock.Text = "Document not found.";
                         return;
                     }
+                    var fileDownloadInfo = System.Text.Json.JsonSerializer.Deserialize<FileDownloadInfo>(jsonResponse);
                     var saveFileDialog = new SaveFileDialog
                     {
-                        FileName = "downloaded_file",
+                        FileName = fileDownloadInfo.FileName,
                         Filter = "All Files (*.*)|*.*",
                         Title = "Save downloaded file"
                     };
                     if (saveFileDialog.ShowDialog() == true)
                     {
-                        byte[] fileBytes = Convert.FromBase64String(base64Content);
+                        byte[] fileBytes = Convert.FromBase64String(fileDownloadInfo.Base64Content);
                         await File.WriteAllBytesAsync(saveFileDialog.FileName, fileBytes);
                         DownloadStatusTextBlock.Text = "File downloaded successfully.";
                     }

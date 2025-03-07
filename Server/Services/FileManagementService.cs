@@ -1,17 +1,20 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+﻿// Server/Services/FileManagementService.cs
+
 using Npgsql;
 using NpgsqlTypes;
 
 namespace Server.Services
 {
+    public class FileDownloadInfo
+    {
+        public string FileName { get; set; }
+        public string Base64Content { get; set; }
+    }
+
     public interface IFileManagementService
     {
         Task<int> UploadFileAsync(string filename, string base64Content, string author, string metadataJson);
-        Task<string> DownloadFileAsync(int documentId);
+        Task<FileDownloadInfo> DownloadFileInfoAsync(int documentId);
     }
 
     public class FileManagementService : IFileManagementService
@@ -28,7 +31,6 @@ namespace Server.Services
             if (!Directory.Exists(_fileStoragePath))
             {
                 Directory.CreateDirectory(_fileStoragePath);
-                _logger.LogInformation("File storage directory created: {path}", _fileStoragePath);
             }
         }
 
@@ -38,7 +40,6 @@ namespace Server.Services
             string uniqueFileName = $"{Guid.NewGuid()}_{filename}";
             string filePath = Path.Combine(_fileStoragePath, uniqueFileName);
             await File.WriteAllBytesAsync(filePath, fileBytes);
-
             int newVersion = 1;
             using (var conn = new NpgsqlConnection(_connectionString))
             {
@@ -54,10 +55,7 @@ namespace Server.Services
                         newVersion = Convert.ToInt32(result) + 1;
                     }
                 }
-                string sql = @"
-                    INSERT INTO documents (filename, author, file_path, metadata, version, last_modified)
-                    VALUES (@filename, @author, @file_path, @metadata, @version, NOW())
-                    RETURNING id;";
+                string sql = "INSERT INTO documents (filename, author, file_path, metadata, version, last_modified) VALUES (@filename, @author, @file_path, @metadata, @version, NOW()) RETURNING id;";
                 using (var cmd = new NpgsqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("filename", filename);
@@ -74,41 +72,34 @@ namespace Server.Services
             }
         }
 
-        public async Task<string> DownloadFileAsync(int documentId)
+        public async Task<FileDownloadInfo> DownloadFileInfoAsync(int documentId)
         {
-            try
+            string filePath = null;
+            string originalFileName = null;
+            using (var conn = new NpgsqlConnection(_connectionString))
             {
-                string filePath = null;
-                using (var conn = new NpgsqlConnection(_connectionString))
+                await conn.OpenAsync();
+                string sql = "SELECT file_path, filename FROM documents WHERE id = @id;";
+                using (var cmd = new NpgsqlCommand(sql, conn))
                 {
-                    await conn.OpenAsync();
-                    string sql = "SELECT file_path FROM documents WHERE id = @id;";
-                    using (var cmd = new NpgsqlCommand(sql, conn))
+                    cmd.Parameters.AddWithValue("id", documentId);
+                    using (var reader = await cmd.ExecuteReaderAsync())
                     {
-                        cmd.Parameters.AddWithValue("id", documentId);
-                        var result = await cmd.ExecuteScalarAsync();
-                        if (result == null)
+                        if (await reader.ReadAsync())
                         {
-                            _logger.LogWarning("Document with id {id} not found", documentId);
-                            return null;
+                            filePath = reader.GetString(0);
+                            originalFileName = reader.GetString(1);
                         }
-                        filePath = result.ToString();
                     }
                 }
-                if (!File.Exists(filePath))
-                {
-                    _logger.LogWarning("File not found on disk: {filePath}", filePath);
-                    return null;
-                }
-                byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
-                string base64Content = Convert.ToBase64String(fileBytes);
-                return base64Content;
             }
-            catch (Exception ex)
+            if (filePath == null || !File.Exists(filePath))
             {
-                _logger.LogError(ex, "Error downloading file with document id: {id}", documentId);
-                throw;
+                return null;
             }
+            byte[] fileBytes = await File.ReadAllBytesAsync(filePath);
+            string base64Content = Convert.ToBase64String(fileBytes);
+            return new FileDownloadInfo { FileName = originalFileName, Base64Content = base64Content };
         }
     }
 }

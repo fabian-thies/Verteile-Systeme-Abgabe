@@ -93,7 +93,7 @@ public partial class PluginManager : UserControl
             if (!plugin.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase))
             {
                 plugin.Execute();
-                MessageBox.Show("Plugin '" + plugin.Name + "' executed (non-Whiteboard).",
+                MessageBox.Show("Plugin '" + plugin.Name + "'.",
                     "Plugin Execution", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else

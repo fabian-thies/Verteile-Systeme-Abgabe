@@ -7,16 +7,14 @@
         FontFamily="Segoe UI"
         WindowStyle="None"
         AllowsTransparency="True">
-    <!-- Border for the modern card look -->
     <Border Background="White" CornerRadius="8" Padding="0"
             Effect="{DynamicResource DropShadowEffect}">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="40" /> <!-- Custom title bar -->
-                <RowDefinition Height="Auto" /> <!-- Error area, collapsed if empty -->
-                <RowDefinition Height="*" />    <!-- Content area -->
+                <RowDefinition Height="40" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <!-- Custom Title Bar as Grid -->
             <Grid Grid.Row="0" Background="{StaticResource PrimaryBrush}"
                   MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
                 <Grid.ColumnDefinitions>
@@ -30,16 +28,13 @@
                         Background="Transparent" BorderBrush="Transparent"
                         Foreground="White" FontWeight="Bold" VerticalAlignment="Center" />
             </Grid>
-            <!-- Error area: shown only when needed -->
             <StackPanel x:Name="ErrorPanel" Grid.Row="1" Visibility="Collapsed" Margin="10,5,10,5">
-                <!-- ScrollViewer sorgt dafür, dass lange Texte gescrollt werden können -->
                 <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="60">
                     <TextBlock Name="ErrorTextBlock" Foreground="Red" TextWrapping="Wrap" HorizontalAlignment="Center" />
                 </ScrollViewer>
                 <TextBlock Name="RetryCountdownTextBlock" Foreground="Gray" FontSize="12" HorizontalAlignment="Center"
                            Margin="0,5,0,0" />
             </StackPanel>
-            <!-- Content Area -->
             <StackPanel Grid.Row="2" Margin="20">
                 <TextBlock Text="Username:" Margin="0,0,0,5" />
                 <TextBox Name="UsernameTextBox" Margin="0,0,0,10" />

@@ -8,6 +8,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WhiteboardPlugin", "Whitebo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared", "Shared\Shared.csproj", "{2F6A74E0-4886-4287-B03E-78E36947199F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ModerationPlugin", "ModerationPlugin\ModerationPlugin.csproj", "{53D3EC2C-BB0C-4CEC-B68F-C84279CEC3C9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,5 +32,9 @@ Global
 		{2F6A74E0-4886-4287-B03E-78E36947199F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F6A74E0-4886-4287-B03E-78E36947199F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F6A74E0-4886-4287-B03E-78E36947199F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53D3EC2C-BB0C-4CEC-B68F-C84279CEC3C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53D3EC2C-BB0C-4CEC-B68F-C84279CEC3C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53D3EC2C-BB0C-4CEC-B68F-C84279CEC3C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53D3EC2C-BB0C-4CEC-B68F-C84279CEC3C9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

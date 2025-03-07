@@ -181,21 +181,20 @@ namespace Client
 
         private async void LoadVersionsButton_Click(object sender, RoutedEventArgs e)
         {
-            string filename = FilenameForVersionTextBox.Text.Trim();
-            if (string.IsNullOrEmpty(filename))
+            if (!int.TryParse(FileIdForVersionTextBox.Text.Trim(), out int fileId))
             {
-                MessageBox.Show("Please enter a filename.", "Missing Filename", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Please enter a valid File ID.", "Invalid File ID", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             try
             {
-                var versions = await _connection.InvokeAsync<List<DocumentVersion>>("GetDocumentVersions", filename);
+                var versions = await _connection.InvokeAsync<List<DocumentVersion>>("GetDocumentVersionsById", fileId);
                 FileVersionsListBox.Items.Clear();
                 if (versions != null && versions.Any())
                 {
                     foreach (var doc in versions)
                     {
-                        FileVersionsListBox.Items.Add($"ID: {doc.Id}, Version: {doc.Version}, Uploaded: {doc.UploadTimestamp}");
+                        FileVersionsListBox.Items.Add($"FileID: {doc.Id}, Version: {doc.Version}, Uploaded: {doc.UploadTimestamp}");
                     }
                 }
                 else
@@ -206,6 +205,30 @@ namespace Client
             catch (Exception ex)
             {
                 MessageBox.Show("Error loading versions: " + ex.Message);
+            }
+        }
+
+        private async void LoadAllFilesButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var allFiles = await _connection.InvokeAsync<List<DocumentVersion>>("GetAllDocuments");
+                AllFilesListBox.Items.Clear();
+                if (allFiles != null && allFiles.Any())
+                {
+                    foreach (var doc in allFiles)
+                    {
+                        AllFilesListBox.Items.Add($"FileID: {doc.Id}, Name: {doc.Filename}, Version: {doc.Version}, Author: {doc.Author}, Uploaded: {doc.UploadTimestamp}");
+                    }
+                }
+                else
+                {
+                    AllFilesListBox.Items.Add("No files found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error loading all files: " + ex.Message);
             }
         }
 

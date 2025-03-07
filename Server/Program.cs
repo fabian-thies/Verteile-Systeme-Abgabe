@@ -10,8 +10,10 @@ builder.Services.AddSignalR(options =>
     options.MaximumReceiveMessageSize = 1024L * 1024L * 50L;
 });
 
+builder.Services.AddSignalR();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFileManagementService, FileManagementService>();
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
 
 var app = builder.Build();
 

@@ -1,9 +1,6 @@
 ﻿// PluginLoader.cs
 
-using System;
 using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.Loader;
 using Microsoft.Extensions.Logging;
 
@@ -46,17 +43,13 @@ public class PluginLoader
                     // Log all types found in the assembly.
                     var allTypes = assembly.GetTypes();
                     foreach (var type in allTypes)
-                    {
                         _logger.LogDebug("Found type in assembly {file}: {TypeName}", file, type.FullName);
-                    }
 
                     var pluginTypes = allTypes
                         .Where(t => typeof(IPlugin).IsAssignableFrom(t) && !t.IsAbstract);
 
                     foreach (var pluginType in pluginTypes)
-                    {
                         _logger.LogDebug("Instantiating plugin type: {PluginType}", pluginType.FullName);
-                    }
 
                     return pluginTypes.Select(t => (IPlugin)Activator.CreateInstance(t));
                 }

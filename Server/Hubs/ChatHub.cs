@@ -16,13 +16,16 @@ namespace Server.Hubs
 
     public class ChatHub : Hub
     {
-        private static ConcurrentDictionary<string, string> _userConnections = new ConcurrentDictionary<string, string>();
+        private static ConcurrentDictionary<string, string> _userConnections =
+            new ConcurrentDictionary<string, string>();
+
         private readonly IAuthService _authService;
         private readonly ILogger<ChatHub> _logger;
         private readonly IFileManagementService _fileService;
         private readonly string _connectionString;
 
-        public ChatHub(IAuthService authService, ILogger<ChatHub> logger, IFileManagementService fileService, IConfiguration config)
+        public ChatHub(IAuthService authService, ILogger<ChatHub> logger, IFileManagementService fileService,
+            IConfiguration config)
         {
             _authService = authService;
             _logger = logger;
@@ -39,6 +42,7 @@ namespace Server.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, username);
                 await Clients.All.SendAsync("ReceiveSystemMessage", username + " has logged in.");
             }
+
             return isAuthenticated;
         }
 
@@ -62,8 +66,10 @@ namespace Server.Hubs
             {
                 return;
             }
+
             await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]", username + " has joined the group " + groupName + ".");
+            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]",
+                username + " has joined the group " + groupName + ".");
         }
 
         public async Task LeaveGroup(string groupName)
@@ -73,8 +79,10 @@ namespace Server.Hubs
             {
                 return;
             }
+
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
-            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]", username + " has left the group " + groupName + ".");
+            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", "[System]",
+                username + " has left the group " + groupName + ".");
         }
 
         public async Task SendGroupMessage(string groupName, string message)
@@ -125,6 +133,7 @@ namespace Server.Hubs
             {
                 await Clients.All.SendAsync("ReceiveSystemMessage", username + " has logged out.");
             }
+
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -134,6 +143,7 @@ namespace Server.Hubs
             {
                 return -1;
             }
+
             int documentId = await _fileService.UploadFileAsync(filename, base64Content, a, metadata);
             await Clients.All.SendAsync("ReceiveSystemMessage", a + " uploaded document " + filename + ".");
             return documentId;
@@ -148,26 +158,59 @@ namespace Server.Hubs
 
         public async Task<List<DocumentVersion>> GetDocumentVersionsById(int fileId)
         {
-            var list = new List<DocumentVersion>();
-            using var conn = new NpgsqlConnection(_connectionString);
-            await conn.OpenAsync();
-            string sql = "SELECT id, filename, author, version, upload_timestamp FROM documents WHERE id = @id ORDER BY version DESC";
-            using var cmd = new NpgsqlCommand(sql, conn);
-            cmd.Parameters.AddWithValue("id", fileId);
-            using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+            DocumentVersion baseDoc = null;
+            using (var conn = new NpgsqlConnection(_connectionString))
             {
-                list.Add(new DocumentVersion
+                await conn.OpenAsync();
+                string sql = "SELECT filename, author FROM documents WHERE id = @id";
+                using (var cmd = new NpgsqlCommand(sql, conn))
                 {
-                    Id = reader.GetInt32(0),
-                    Filename = reader.GetString(1),
-                    Author = reader.GetString(2),
-                    Version = reader.GetInt32(3),
-                    UploadTimestamp = reader.GetDateTime(4)
-                });
+                    cmd.Parameters.AddWithValue("id", fileId);
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        if (await reader.ReadAsync())
+                        {
+                            baseDoc = new DocumentVersion
+                            {
+                                Filename = reader.GetString(0),
+                                Author = reader.GetString(1)
+                            };
+                        }
+                    }
+                }
+
+                if (baseDoc == null)
+                {
+                    return new List<DocumentVersion>();
+                }
+
+                string versionSql =
+                    "SELECT id, filename, author, version, upload_timestamp FROM documents WHERE filename = @filename AND author = @author ORDER BY version DESC";
+                using (var cmd2 = new NpgsqlCommand(versionSql, conn))
+                {
+                    cmd2.Parameters.AddWithValue("filename", baseDoc.Filename);
+                    cmd2.Parameters.AddWithValue("author", baseDoc.Author);
+                    using (var reader2 = await cmd2.ExecuteReaderAsync())
+                    {
+                        var list = new List<DocumentVersion>();
+                        while (await reader2.ReadAsync())
+                        {
+                            list.Add(new DocumentVersion
+                            {
+                                Id = reader2.GetInt32(0),
+                                Filename = reader2.GetString(1),
+                                Author = reader2.GetString(2),
+                                Version = reader2.GetInt32(3),
+                                UploadTimestamp = reader2.GetDateTime(4)
+                            });
+                        }
+
+                        return list;
+                    }
+                }
             }
-            return list;
         }
+
 
         public async Task<List<DocumentVersion>> GetAllDocuments()
         {
@@ -188,6 +231,7 @@ namespace Server.Hubs
                     UploadTimestamp = reader.GetDateTime(4)
                 });
             }
+
             return list;
         }
     }

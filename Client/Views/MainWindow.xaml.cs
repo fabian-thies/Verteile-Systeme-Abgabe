@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -6,6 +9,15 @@ using Microsoft.Win32;
 
 namespace Client
 {
+    public class DocumentVersion
+    {
+        public int Id { get; set; }
+        public string Filename { get; set; }
+        public string Author { get; set; }
+        public int Version { get; set; }
+        public DateTime UploadTimestamp { get; set; }
+    }
+
     public partial class MainWindow : Window
     {
         private readonly HubConnection _connection;
@@ -164,6 +176,36 @@ namespace Client
             else
             {
                 DownloadStatusTextBlock.Text = "Invalid document ID.";
+            }
+        }
+
+        private async void LoadVersionsButton_Click(object sender, RoutedEventArgs e)
+        {
+            string filename = FilenameForVersionTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(filename))
+            {
+                MessageBox.Show("Please enter a filename.", "Missing Filename", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                var versions = await _connection.InvokeAsync<List<DocumentVersion>>("GetDocumentVersions", filename);
+                FileVersionsListBox.Items.Clear();
+                if (versions != null && versions.Any())
+                {
+                    foreach (var doc in versions)
+                    {
+                        FileVersionsListBox.Items.Add($"ID: {doc.Id}, Version: {doc.Version}, Uploaded: {doc.UploadTimestamp}");
+                    }
+                }
+                else
+                {
+                    FileVersionsListBox.Items.Add("No versions found.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error loading versions: " + ex.Message);
             }
         }
 

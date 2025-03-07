@@ -88,6 +88,8 @@
               <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
               </Grid.RowDefinitions>
               <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
                 <Button Content="Upload File" Click="UploadFileButton_Click" Margin="5"/>
@@ -99,6 +101,12 @@
                 <Button Content="Download File" Click="DownloadFileButton_Click" Margin="5"/>
                 <TextBlock Name="DownloadStatusTextBlock" VerticalAlignment="Center" Margin="5"/>
               </StackPanel>
+              <StackPanel Orientation="Horizontal" Grid.Row="2" Margin="0,10,0,10">
+                <TextBlock Text="Filename:" VerticalAlignment="Center" Margin="5"/>
+                <TextBox Name="FilenameForVersionTextBox" Width="200" Margin="5"/>
+                <Button Content="Load Versions" Click="LoadVersionsButton_Click" Margin="5"/>
+              </StackPanel>
+              <ListBox Name="FileVersionsListBox" Grid.Row="3" Margin="5"/>
             </Grid>
           </TabItem>
         </TabControl>

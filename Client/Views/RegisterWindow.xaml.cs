@@ -1,16 +1,23 @@
 ﻿using System.Windows;
 using System.Windows.Input;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 
 namespace Client.Views;
 
 public partial class RegisterWindow : Window
 {
     private readonly HubConnection connection;
+    private readonly ILogger<RegisterWindow> _logger;
 
     public RegisterWindow()
     {
         InitializeComponent();
+
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        _logger = loggerFactory.CreateLogger<RegisterWindow>();
+        _logger.LogInformation("Initializing RegisterWindow and creating SignalR connection.");
+
         connection = new HubConnectionBuilder()
             .WithUrl("http://localhost:5000/chatHub")
             .Build();
@@ -20,15 +27,17 @@ public partial class RegisterWindow : Window
 
     private async void ConnectToServer()
     {
+        _logger.LogInformation("Attempting to connect to the server in RegisterWindow...");
         try
         {
             await connection.StartAsync();
-            // Clear error message and hide error panel on success
+            _logger.LogInformation("Connected to the server successfully.");
             ErrorTextBlock.Text = "";
             ErrorPanel.Visibility = Visibility.Collapsed;
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Failed to connect to server.");
             ErrorTextBlock.Text = "Failed to connect to server: " + ex.Message;
             ErrorPanel.Visibility = Visibility.Visible;
         }
@@ -36,6 +45,7 @@ public partial class RegisterWindow : Window
 
     private async void RegisterButton_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("Register button clicked.");
         ErrorTextBlock.Text = "";
         ErrorPanel.Visibility = Visibility.Collapsed;
 
@@ -45,6 +55,7 @@ public partial class RegisterWindow : Window
 
         if (password != confirmPassword)
         {
+            _logger.LogWarning("Password and confirmation do not match for user: {Username}", username);
             ErrorTextBlock.Text = "Passwords do not match.";
             ErrorPanel.Visibility = Visibility.Visible;
             return;
@@ -52,10 +63,11 @@ public partial class RegisterWindow : Window
 
         try
         {
+            _logger.LogInformation("Attempting to register user: {Username}", username);
             var isRegistered = await connection.InvokeAsync<bool>("Register", username, password);
             if (isRegistered)
             {
-                // Optionally show a brief success message before navigating back to login
+                _logger.LogInformation("User {Username} registered successfully.", username);
                 ErrorTextBlock.Text = "Registration successful!";
                 ErrorPanel.Visibility = Visibility.Visible;
                 var loginWindow = new LoginWindow();
@@ -64,12 +76,14 @@ public partial class RegisterWindow : Window
             }
             else
             {
+                _logger.LogWarning("Registration failed for user: {Username}. Username might already exist.", username);
                 ErrorTextBlock.Text = "Registration failed. Username might already exist.";
                 ErrorPanel.Visibility = Visibility.Visible;
             }
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "An error occurred during registration for user: {Username}", username);
             ErrorTextBlock.Text = "An error occurred: " + ex.Message;
             ErrorPanel.Visibility = Visibility.Visible;
         }
@@ -77,20 +91,24 @@ public partial class RegisterWindow : Window
 
     private void BackToLoginButton_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("BackToLogin button clicked. Navigating to LoginWindow.");
         var loginWindow = new LoginWindow();
         loginWindow.Show();
         Close();
     }
 
-    // Allows dragging of the window from the title bar.
     private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.LeftButton == MouseButtonState.Pressed) DragMove();
+        if (e.LeftButton == MouseButtonState.Pressed)
+        {
+            _logger.LogInformation("Dragging RegisterWindow via title bar.");
+            DragMove();
+        }
     }
 
-    // Closes the window when the close button is clicked.
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogInformation("Close button clicked in RegisterWindow. Closing window.");
         Close();
     }
 }

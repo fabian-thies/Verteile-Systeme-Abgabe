@@ -1,8 +1,8 @@
-﻿// PluginLoader.cs
-
-using System.IO;
+﻿using System.IO;
 using System.Runtime.Loader;
+using System.Security.Cryptography;
 using Microsoft.Extensions.Logging;
+using System.Windows;
 
 public class PluginLoader
 {
@@ -13,7 +13,6 @@ public class PluginLoader
         _logger = logger;
     }
 
-    // Loads all plugins from the specified directory.
     public IPlugin[] LoadPlugins(string pluginDirectory)
     {
         _logger.LogInformation("Loading plugins from directory: {directory}", pluginDirectory);
@@ -29,18 +28,15 @@ public class PluginLoader
             {
                 try
                 {
-                    // Verify plugin signature before loading.
                     if (!VerifyPlugin(file))
                     {
-                        _logger.LogWarning("Plugin verification failed for file: {file}", file);
+                        _logger.LogWarning("User declined to load plugin from file: {file}", file);
                         return Enumerable.Empty<IPlugin>();
                     }
 
-                    // Create a new AssemblyLoadContext for plugin isolation.
                     var alc = new AssemblyLoadContext(Path.GetFileNameWithoutExtension(file), true);
                     var assembly = alc.LoadFromAssemblyPath(Path.GetFullPath(file));
 
-                    // Log all types found in the assembly.
                     var allTypes = assembly.GetTypes();
                     foreach (var type in allTypes)
                         _logger.LogDebug("Found type in assembly {file}: {TypeName}", file, type.FullName);
@@ -68,7 +64,53 @@ public class PluginLoader
     private bool VerifyPlugin(string pluginFile)
     {
         _logger.LogInformation("Verifying plugin: {file}", pluginFile);
-        // For demonstration, we assume the plugin is valid.
-        return true;
+        try
+        {
+            using (var stream = File.OpenRead(pluginFile))
+            using (var sha256 = SHA256.Create())
+            {
+                var hashBytes = sha256.ComputeHash(stream);
+                var hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+                var allowedHashes = new HashSet<string>
+                {
+                    "f972dafa8ee050a130ae6f394cae7544b87b77e2648ab9cdeba82cc5ba51693b" // ModerationPlugin
+                };
+
+                if (allowedHashes.Contains(hashString))
+                {
+                    _logger.LogInformation("Plugin {file} is trusted. Hash: {hash}", pluginFile, hashString);
+                    MessageBox.Show($"Plugin {Path.GetFileName(pluginFile)} is trusted.", "Plugin Verification",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning("Plugin {file} is not trusted. Hash: {hash}", pluginFile, hashString);
+                    // Ask the user if they want to load the untrusted plugin.
+                    var result = MessageBox.Show(
+                        $"Plugin {Path.GetFileName(pluginFile)} is not trusted (Hash: {hashString}).\nDo you want to load it anyway?",
+                        "Plugin Verification",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        _logger.LogWarning("User chose to load the untrusted plugin: {file}", pluginFile);
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogInformation("User declined to load the untrusted plugin: {file}", pluginFile);
+                        return false;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during plugin verification for file: {file}", pluginFile);
+            return false;
+        }
     }
 }

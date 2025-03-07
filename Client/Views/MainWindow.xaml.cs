@@ -20,7 +20,6 @@ public partial class MainWindow : Window
         InitializeComponent();
         _connection = hubConnection;
 
-        // Create logger instance
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         _logger = loggerFactory.CreateLogger<MainWindow>();
         _logger.LogInformation("MainWindow initialized and SignalR connection set.");
@@ -51,14 +50,14 @@ public partial class MainWindow : Window
                 _logger.LogInformation("Received private message from {Sender}: {Message}", sender, message);
                 Dispatcher.Invoke(() => { PrivateChatListBox.Items.Add(sender + ": " + message); });
             });
-            
+
         _connection.On<string, string>("ReceiveGroupMessage",
             (sender, message) =>
             {
                 _logger.LogInformation("Received group message from {Sender}: {Message}", sender, message);
                 Dispatcher.Invoke(() => { GroupChatListBox.Items.Add(sender + ": " + message); });
             });
-            
+
         _connection.On<string>("ReceiveSystemMessage", message =>
         {
             _logger.LogInformation("Received system message: {Message}", message);
@@ -68,7 +67,7 @@ public partial class MainWindow : Window
                 GroupChatListBox.Items.Add("[System]: " + message);
             });
         });
-        
+
         _connection.On<string>("ReceiveWhiteboardPluginRequest", async requester =>
         {
             _logger.LogInformation("Received whiteboard plugin request from {Requester}", requester);
@@ -79,9 +78,11 @@ public partial class MainWindow : Window
                     _logger.LogInformation("Whiteboard plugin already loaded. No action taken.");
                     return;
                 }
+
                 var result = MessageBox.Show(
-                        requester + " invites you to join a whiteboard session.\nDo you want to automatically load the plugin?",
-                        "Whiteboard Plugin Request", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    requester +
+                    " invites you to join a whiteboard session.\nDo you want to automatically load the plugin?",
+                    "Whiteboard Plugin Request", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (result == MessageBoxResult.Yes)
                 {
                     _logger.LogInformation("User accepted whiteboard plugin request from {Requester}", requester);
@@ -93,7 +94,7 @@ public partial class MainWindow : Window
                 }
             });
         });
-        
+
         _connection.On<string, string>("ReceivePluginFile", (sender, base64Content) =>
         {
             _logger.LogInformation("Received plugin file from {Sender}", sender);
@@ -108,6 +109,7 @@ public partial class MainWindow : Window
                         Directory.CreateDirectory(pluginDir);
                         _logger.LogInformation("Plugin directory created at {PluginDir}", pluginDir);
                     }
+
                     var pluginFilePath = Path.Combine(pluginDir, "WhiteboardPlugin.dll");
                     File.WriteAllBytes(pluginFilePath, pluginBytes);
                     _logger.LogInformation("Plugin file saved at {PluginFilePath}", pluginFilePath);
@@ -122,7 +124,7 @@ public partial class MainWindow : Window
                 }
             });
         });
-        
+
         _connection.On<string>("ReceivePluginFileRequest", async targetUser =>
         {
             _logger.LogInformation("Received plugin file request for user {TargetUser}", targetUser);
@@ -130,7 +132,8 @@ public partial class MainWindow : Window
             {
                 try
                 {
-                    var pluginPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", "WhiteboardPlugin.dll");
+                    var pluginPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins",
+                        "WhiteboardPlugin.dll");
                     if (File.Exists(pluginPath))
                     {
                         var pluginBytes = File.ReadAllBytes(pluginPath);
@@ -173,7 +176,8 @@ public partial class MainWindow : Window
                 var filename = Path.GetFileName(filePath);
                 var metadata = "{}";
                 var author = "MyUser";
-                var documentId = await _connection.InvokeAsync<int>("UploadDocument", filename, base64Content, author, metadata);
+                var documentId =
+                    await _connection.InvokeAsync<int>("UploadDocument", filename, base64Content, author, metadata);
                 UploadStatusTextBlock.Text = "File uploaded successfully. Document ID: " + documentId;
                 _logger.LogInformation("File uploaded successfully with Document ID: {DocumentId}", documentId);
             }
@@ -234,7 +238,8 @@ public partial class MainWindow : Window
         _logger.LogInformation("LoadVersionsButton clicked.");
         if (!int.TryParse(FileIdForVersionTextBox.Text.Trim(), out var fileId))
         {
-            _logger.LogWarning("Invalid File ID entered for version loading: {FileIdText}", FileIdForVersionTextBox.Text);
+            _logger.LogWarning("Invalid File ID entered for version loading: {FileIdText}",
+                FileIdForVersionTextBox.Text);
             MessageBox.Show("Please enter a valid File ID.", "Invalid File ID", MessageBoxButton.OK,
                 MessageBoxImage.Warning);
             return;
@@ -248,7 +253,8 @@ public partial class MainWindow : Window
             if (versions != null && versions.Any())
             {
                 foreach (var doc in versions)
-                    FileVersionsListBox.Items.Add("FileID: " + doc.Id + ", Version: " + doc.Version + ", Uploaded: " + doc.UploadTimestamp);
+                    FileVersionsListBox.Items.Add("FileID: " + doc.Id + ", Version: " + doc.Version + ", Uploaded: " +
+                                                  doc.UploadTimestamp);
                 _logger.LogInformation("Loaded {Count} versions for File ID: {FileId}", versions.Count, fileId);
             }
             else
@@ -274,7 +280,9 @@ public partial class MainWindow : Window
             if (allFiles != null && allFiles.Any())
             {
                 foreach (var doc in allFiles)
-                    AllFilesListBox.Items.Add("FileID: " + doc.Id + ", Name: " + doc.Filename + ", Version: " + doc.Version + ", Author: " + doc.Author + ", Uploaded: " + doc.UploadTimestamp);
+                    AllFilesListBox.Items.Add("FileID: " + doc.Id + ", Name: " + doc.Filename + ", Version: " +
+                                              doc.Version + ", Author: " + doc.Author + ", Uploaded: " +
+                                              doc.UploadTimestamp);
                 _logger.LogInformation("Loaded all files. Total files: {Count}", allFiles.Count);
             }
             else
@@ -300,11 +308,15 @@ public partial class MainWindow : Window
             _logger.LogWarning("Private message not sent. Target user or message is empty.");
             return;
         }
+
+        // Process the message through plugins (e.g., moderation plugin).
+        var processedMessage = ProcessMessageThroughPlugins(message);
+
         try
         {
-            await _connection.InvokeAsync("SendPrivateMessage", targetUser, message);
-            PrivateChatListBox.Items.Add("Me to " + targetUser + ": " + message);
-            _logger.LogInformation("Private message sent to {TargetUser}: {Message}", targetUser, message);
+            await _connection.InvokeAsync("SendPrivateMessage", targetUser, processedMessage);
+            PrivateChatListBox.Items.Add("Me to " + targetUser + ": " + processedMessage);
+            _logger.LogInformation("Private message sent to {TargetUser}: {Message}", targetUser, processedMessage);
             PrivateMessageTextBox.Clear();
         }
         catch (Exception ex)
@@ -323,6 +335,7 @@ public partial class MainWindow : Window
             _logger.LogWarning("Join group failed. Group name is empty.");
             return;
         }
+
         try
         {
             await _connection.InvokeAsync("JoinGroup", groupName);
@@ -345,6 +358,7 @@ public partial class MainWindow : Window
             _logger.LogWarning("Leave group failed. Group name is empty.");
             return;
         }
+
         try
         {
             await _connection.InvokeAsync("LeaveGroup", groupName);
@@ -368,11 +382,14 @@ public partial class MainWindow : Window
             _logger.LogWarning("Group message not sent. Group name or message is empty.");
             return;
         }
+
+        var processedMessage = ProcessMessageThroughPlugins(message);
+
         try
         {
-            await _connection.InvokeAsync("SendGroupMessage", groupName, message);
-            GroupChatListBox.Items.Add("Me in " + groupName + ": " + message);
-            _logger.LogInformation("Group message sent to {GroupName}: {Message}", groupName, message);
+            await _connection.InvokeAsync("SendGroupMessage", groupName, processedMessage);
+            GroupChatListBox.Items.Add("Me in " + groupName + ": " + processedMessage);
+            _logger.LogInformation("Group message sent to {GroupName}: {Message}", groupName, processedMessage);
             GroupMessageTextBox.Clear();
         }
         catch (Exception ex)
@@ -387,7 +404,8 @@ public partial class MainWindow : Window
         if (e.Key == Key.Enter)
         {
             e.Handled = true;
-            _logger.LogInformation("Enter key pressed in PrivateMessageTextBox. Triggering SendPrivateMessageButton_Click.");
+            _logger.LogInformation(
+                "Enter key pressed in PrivateMessageTextBox. Triggering SendPrivateMessageButton_Click.");
             SendPrivateMessageButton_Click(sender, e);
         }
     }
@@ -397,7 +415,8 @@ public partial class MainWindow : Window
         if (e.Key == Key.Enter)
         {
             e.Handled = true;
-            _logger.LogInformation("Enter key pressed in GroupMessageTextBox. Triggering SendGroupMessageButton_Click.");
+            _logger.LogInformation(
+                "Enter key pressed in GroupMessageTextBox. Triggering SendGroupMessageButton_Click.");
             SendGroupMessageButton_Click(sender, e);
         }
     }
@@ -429,11 +448,14 @@ public partial class MainWindow : Window
             return;
         }
 
-        var plugin = _currentlyLoadedPlugins.FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
+        var plugin =
+            _currentlyLoadedPlugins.FirstOrDefault(p =>
+                p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
         if (plugin == null)
         {
             _logger.LogWarning("Whiteboard plugin not loaded for private session.");
-            MessageBox.Show("Whiteboard plugin is NOT loaded.\nPlease go to the 'Plugins' tab, load the plugin manually, and then try again.",
+            MessageBox.Show(
+                "Whiteboard plugin is NOT loaded.\nPlease go to the 'Plugins' tab, load the plugin manually, and then try again.",
                 "Plugin not found", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -445,21 +467,25 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending whiteboard plugin request for private session to {TargetUser}", targetUser);
+            _logger.LogError(ex, "Error sending whiteboard plugin request for private session to {TargetUser}",
+                targetUser);
             MessageBox.Show("Error sending whiteboard plugin request: " + ex.Message);
             return;
         }
 
-        var initMethod = plugin.GetType().GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
+        var initMethod = plugin.GetType()
+            .GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
         if (initMethod != null)
         {
-            _logger.LogInformation("Initializing whiteboard plugin for private session with target user {TargetUser}", targetUser);
+            _logger.LogInformation("Initializing whiteboard plugin for private session with target user {TargetUser}",
+                targetUser);
             initMethod.Invoke(plugin, new object[] { _connection, targetUser, false });
         }
         else
         {
             _logger.LogWarning("Initialization method not found in whiteboard plugin for private session.");
         }
+
         plugin.Execute();
         _logger.LogInformation("Whiteboard plugin executed for private session.");
     }
@@ -471,30 +497,51 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(groupName))
         {
             _logger.LogWarning("Group name is empty for group whiteboard.");
-            MessageBox.Show("Please enter a group name.", "Missing Group Name", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show("Please enter a group name.", "Missing Group Name", MessageBoxButton.OK,
+                MessageBoxImage.Warning);
             return;
         }
 
-        var plugin = _currentlyLoadedPlugins.FirstOrDefault(p => p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
+        var plugin =
+            _currentlyLoadedPlugins.FirstOrDefault(p =>
+                p.Name.Equals("Whiteboard", StringComparison.OrdinalIgnoreCase));
         if (plugin == null)
         {
             _logger.LogWarning("Whiteboard plugin not loaded for group session.");
-            MessageBox.Show("Whiteboard plugin is NOT loaded.\nPlease go to the 'Plugins' tab, load the plugin manually, and then try again.",
+            MessageBox.Show(
+                "Whiteboard plugin is NOT loaded.\nPlease go to the 'Plugins' tab, load the plugin manually, and then try again.",
                 "Plugin not found", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
-        var initMethod = plugin.GetType().GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
+        var initMethod = plugin.GetType()
+            .GetMethod("Initialize", new[] { typeof(HubConnection), typeof(string), typeof(bool) });
         if (initMethod != null)
         {
-            _logger.LogInformation("Initializing whiteboard plugin for group session with group {GroupName}", groupName);
+            _logger.LogInformation("Initializing whiteboard plugin for group session with group {GroupName}",
+                groupName);
             initMethod.Invoke(plugin, new object[] { _connection, groupName, true });
         }
         else
         {
             _logger.LogWarning("Initialization method not found in whiteboard plugin for group session.");
         }
+
         plugin.Execute();
         _logger.LogInformation("Whiteboard plugin executed for group session.");
+    }
+
+    private string ProcessMessageThroughPlugins(string message)
+    {
+        foreach (var plugin in _currentlyLoadedPlugins)
+        {
+            var processMethod = plugin.GetType().GetMethod("ProcessMessage", new Type[] { typeof(string) });
+            if (processMethod != null)
+            {
+                message = (string)processMethod.Invoke(plugin, new object[] { message });
+            }
+        }
+
+        return message;
     }
 }

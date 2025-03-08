@@ -7,10 +7,11 @@ services:
       dockerfile: Server/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      # Adjust the connection string as needed (here referencing the postgres service)
       ConnectionStrings__DefaultConnection: "Host=91.218.66.12;Port=4462;Database=postgres;Username=postgres;Password=FeK2olA9hIFHQiaeip3c2uHWm1YTNerTYCkKM3sptkFayUNxN7nvVqK7d2rqmTdn"
+      Redis__Configuration: "redis:6379"
     depends_on:
       - postgres
+      - redis
 
   postgres:
     image: postgres:13
@@ -22,6 +23,11 @@ services:
       - postgres-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
 
   nginx:
     build:

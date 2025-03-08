@@ -26,7 +26,7 @@ public class ChatHub : Hub
         _logger = logger;
         _fileService = fileService;
         _connectionString = config.GetConnectionString("DefaultConnection");
-
+        
         _logger.LogInformation("ChatHub initialized.");
     }
 

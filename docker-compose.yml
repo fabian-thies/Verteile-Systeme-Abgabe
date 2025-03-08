@@ -8,7 +8,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Host=91.218.66.12;Port=4462;Database=postgres;Username=postgres;Password=FeK2olA9hIFHQiaeip3c2uHWm1YTNerTYCkKM3sptkFayUNxN7nvVqK7d2rqmTdn"
-      Redis__Configuration: "redis:6379"
+      Redis__Configuration: "redis:6379,abortConnect=false"
+      ASPNETCORE_URLS: "http://+:8080"
     depends_on:
       - postgres
       - redis

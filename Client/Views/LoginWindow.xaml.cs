@@ -24,6 +24,7 @@ public partial class LoginWindow : Window
 
         connection = new HubConnectionBuilder()
             .WithUrl("http://localhost:5000/chatHub")
+            .WithAutomaticReconnect()
             .Build();
 
         _logger.LogInformation("SignalR HubConnection created with URL: {Url}", "http://localhost:5000/chatHub");
@@ -39,7 +40,6 @@ public partial class LoginWindow : Window
             await connection.StartAsync();
             _logger.LogInformation("Successfully connected to the server.");
 
-            // On success: clear error messages and hide error panel
             ErrorTextBlock.Text = "";
             RetryCountdownTextBlock.Text = "";
             ErrorPanel.Visibility = Visibility.Collapsed;
@@ -49,9 +49,7 @@ public partial class LoginWindow : Window
         {
             _logger.LogError(ex, "Failed to connect to the server.");
 
-            // Set full error message
             ErrorTextBlock.Text = "Failed to connect to server: " + ex.Message;
-            // Show error panel so it occupies space
             ErrorPanel.Visibility = Visibility.Visible;
             StartRetryTimer();
         }

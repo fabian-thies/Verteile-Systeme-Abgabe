@@ -20,6 +20,7 @@ public partial class RegisterWindow : Window
 
         connection = new HubConnectionBuilder()
             .WithUrl("http://localhost:5000/chatHub")
+            .WithAutomaticReconnect()
             .Build();
 
         ConnectToServer();

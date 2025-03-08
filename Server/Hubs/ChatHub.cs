@@ -9,7 +9,6 @@ namespace Server.Hubs;
 
 public class ChatHub : Hub
 {
-    // Dictionary to track groups and their connected connection IDs
     private static ConcurrentDictionary<string, HashSet<string>> _groups =
         new ConcurrentDictionary<string, HashSet<string>>();
 
@@ -143,14 +142,12 @@ public class ChatHub : Hub
         await BroadcastGroupList();
     }
 
-    // Method to broadcast current open groups to all clients
     private async Task BroadcastGroupList()
     {
         var groupList = _groups.Keys.ToList();
         await Clients.All.SendAsync("ReceiveGroupList", groupList);
     }
 
-    // Method to get open groups (for initial load)
     public Task<List<string>> GetOpenGroups()
     {
         var groupList = _groups.Keys.ToList();

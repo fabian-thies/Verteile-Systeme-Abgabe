@@ -17,7 +17,6 @@ public class FileManagementService : IFileManagementService
         _fileStoragePath = configuration["FileStoragePath"] ??
                            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UploadedFiles");
 
-        // Create the file storage directory if it does not exist
         if (!Directory.Exists(_fileStoragePath))
         {
             Directory.CreateDirectory(_fileStoragePath);
@@ -38,11 +37,9 @@ public class FileManagementService : IFileManagementService
         var uniqueFileName = $"{Guid.NewGuid()}_{filename}";
         var filePath = Path.Combine(_fileStoragePath, uniqueFileName);
 
-        // Write file to disk
         await File.WriteAllBytesAsync(filePath, fileBytes);
         _logger.LogInformation("File written to disk at {FilePath}", filePath);
 
-        // Determine new version number
         var newVersion = 1;
         using (var conn = new NpgsqlConnection(_connectionString))
         {
@@ -66,7 +63,6 @@ public class FileManagementService : IFileManagementService
                 }
             }
 
-            // Insert document record into database
             var sql =
                 "INSERT INTO documents (filename, author, file_path, metadata, version, last_modified) VALUES (@filename, @author, @file_path, @metadata, @version, NOW()) RETURNING id;";
             using (var cmd = new NpgsqlCommand(sql, conn))
@@ -118,14 +114,12 @@ public class FileManagementService : IFileManagementService
             }
         }
 
-        // Check if file exists
         if (filePath == null || !File.Exists(filePath))
         {
             _logger.LogError("File not found at path: {FilePath} for document ID: {DocumentId}", filePath, documentId);
             return null;
         }
 
-        // Read file from disk and convert to base64
         var fileBytes = await File.ReadAllBytesAsync(filePath);
         var base64Content = Convert.ToBase64String(fileBytes);
         _logger.LogInformation("File read successfully from disk for document ID: {DocumentId}", documentId);

@@ -4,7 +4,7 @@ using Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var redisConnectionString = builder.Configuration["Redis__Configuration"];
+var redisConnectionString = builder.Configuration["Redis:Configuration"];
 
 if (string.IsNullOrEmpty(redisConnectionString))
 {

@@ -6,6 +6,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 var redisConnectionString = builder.Configuration["Redis__Configuration"];
 
+if (string.IsNullOrEmpty(redisConnectionString))
+{
+    redisConnectionString = "localhost:6379";
+}
+
 builder.Services.AddSignalR(options =>
     {
         options.MaximumReceiveMessageSize = 1024L * 1024L * 50L;

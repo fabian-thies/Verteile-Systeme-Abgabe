@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Server/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Adjust the connection string as needed (here referencing the postgres service)
+      ConnectionStrings__DefaultConnection: "Host=91.218.66.12;Port=4462;Database=postgres;Username=postgres;Password=FeK2olA9hIFHQiaeip3c2uHWm1YTNerTYCkKM3sptkFayUNxN7nvVqK7d2rqmTdn"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: yourpassword
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+volumes:
+  postgres-data:

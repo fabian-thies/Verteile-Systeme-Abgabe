@@ -87,7 +87,6 @@ public class PluginLoader
                 else
                 {
                     _logger.LogWarning("Plugin {file} is not trusted. Hash: {hash}", pluginFile, hashString);
-                    // Ask the user if they want to load the untrusted plugin.
                     var result = MessageBox.Show(
                         $"Plugin {Path.GetFileName(pluginFile)} is not trusted (Hash: {hashString}).\nDo you want to load it anyway?",
                         "Plugin Verification",

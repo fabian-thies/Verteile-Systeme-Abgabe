@@ -10,7 +10,7 @@ public partial class LoginWindow : Window
 {
     private readonly HubConnection connection;
     private readonly ILogger<LoginWindow> _logger;
-    private int retrySecondsRemaining = 60;
+    private int retrySecondsRemaining;
     private DispatcherTimer retryTimer;
 
     public LoginWindow()
@@ -60,7 +60,7 @@ public partial class LoginWindow : Window
     private void StartRetryTimer()
     {
         _logger.LogInformation("Starting retry timer.");
-        retrySecondsRemaining = 60;
+        retrySecondsRemaining = 10;
         RetryCountdownTextBlock.Text = "Erneuter Verbindungsversuch in " + retrySecondsRemaining + " Sekunden...";
         if (retryTimer == null)
         {

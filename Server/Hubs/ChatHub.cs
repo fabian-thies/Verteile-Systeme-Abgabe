@@ -70,14 +70,19 @@ public class ChatHub : Hub
     {
         if (_userConnections.TryGetValue(Context.ConnectionId, out var sender))
         {
-            _logger.LogInformation("User {Sender} sending private message to {TargetUser}: {Message}", sender,
-                targetUser, message);
+            using (var conn = new NpgsqlConnection(_connectionString))
+            {
+                await conn.OpenAsync();
+                var sql = "INSERT INTO messages (sender_id, receiver_id, content, timestamp) VALUES ((SELECT id FROM users WHERE username = @sender), (SELECT id FROM users WHERE username = @target), @content, NOW())";
+                using (var cmd = new NpgsqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("sender", sender);
+                    cmd.Parameters.AddWithValue("target", targetUser);
+                    cmd.Parameters.AddWithValue("content", message);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
             await Clients.Group(targetUser).SendAsync("ReceivePrivateMessage", sender, message);
-        }
-        else
-        {
-            _logger.LogWarning("SendPrivateMessage: No sender found for connection ID: {ConnectionId}",
-                Context.ConnectionId);
         }
     }
 
@@ -376,7 +381,15 @@ public class ChatHub : Hub
         using(var conn = new NpgsqlConnection(_connectionString))
         {
             await conn.OpenAsync();
-            var sql = "SELECT sender_id, receiver_id, content, timestamp FROM messages WHERE (sender_id = (SELECT id FROM users WHERE username = @currentUser) AND receiver_id = (SELECT id FROM users WHERE username = @targetUser)) OR (sender_id = (SELECT id FROM users WHERE username = @targetUser) AND receiver_id = (SELECT id FROM users WHERE username = @currentUser)) ORDER BY timestamp ASC";
+            var sql = @"
+            SELECT u.username, m.receiver_id, m.content, m.timestamp 
+            FROM messages m 
+            JOIN users u ON m.sender_id = u.id
+            WHERE (m.sender_id = (SELECT id FROM users WHERE username = @currentUser) 
+                   AND m.receiver_id = (SELECT id FROM users WHERE username = @targetUser))
+               OR (m.sender_id = (SELECT id FROM users WHERE username = @targetUser) 
+                   AND m.receiver_id = (SELECT id FROM users WHERE username = @currentUser))
+            ORDER BY m.timestamp ASC";
             using(var cmd = new NpgsqlCommand(sql, conn))
             {
                 cmd.Parameters.AddWithValue("currentUser", currentUser);
@@ -385,7 +398,13 @@ public class ChatHub : Hub
                 {
                     while(await reader.ReadAsync())
                     {
-                        history.Add(new MessageDto { SenderId = reader.GetInt32(0), ReceiverId = reader.GetInt32(1), Content = reader.GetString(2), Timestamp = reader.GetDateTime(3) });
+                        history.Add(new MessageDto 
+                        { 
+                            SenderName = reader.GetString(0), 
+                            ReceiverId = reader.GetInt32(1), 
+                            Content = reader.GetString(2), 
+                            Timestamp = reader.GetDateTime(3) 
+                        });
                     }
                 }
             }

@@ -46,7 +46,7 @@ public partial class MainWindow : Window
             PrivateChatListBox.Items.Clear();
             foreach(var message in history)
             {
-                PrivateChatListBox.Items.Add($"{message.Timestamp:HH:mm} {message.SenderId}: {message.Content}");
+                PrivateChatListBox.Items.Add($"{message.Timestamp:HH:mm} {message.SenderName}: {message.Content}");
             }
         }
         catch(Exception ex)
@@ -399,7 +399,7 @@ public partial class MainWindow : Window
         try
         {
             await _connection.InvokeAsync("SendPrivateMessage", targetUser, processedMessage);
-            PrivateChatListBox.Items.Add("Me to " + targetUser + ": " + processedMessage);
+            PrivateChatListBox.Items.Add($"{DateTime.Now:HH:mm} Me to {targetUser}: {processedMessage}");
             _logger.LogInformation("Private message sent to {TargetUser}: {Message}", targetUser, processedMessage);
             PrivateMessageTextBox.Clear();
         }
@@ -472,7 +472,7 @@ public partial class MainWindow : Window
         try
         {
             await _connection.InvokeAsync("SendGroupMessage", groupName, processedMessage);
-            GroupChatListBox.Items.Add("Me in " + groupName + ": " + processedMessage);
+            GroupChatListBox.Items.Add($"{DateTime.Now:HH:mm} Me in {groupName}: {processedMessage}");
             _logger.LogInformation("Group message sent to {GroupName}: {Message}", groupName, processedMessage);
             GroupMessageTextBox.Clear();
         }

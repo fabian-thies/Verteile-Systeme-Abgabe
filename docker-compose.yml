@@ -84,7 +84,9 @@ services:
     ports:
       - "5000:80"
     depends_on:
-      - server
+      - server1
+      - server2
+      - server3
 
 volumes:
   postgres-data:

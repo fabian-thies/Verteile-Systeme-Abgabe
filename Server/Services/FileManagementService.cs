@@ -1,4 +1,6 @@
-﻿using Npgsql;
+﻿using System.Net.Http;
+using System.Text.Json;
+using Npgsql;
 using NpgsqlTypes;
 using Shared.Models;
 
@@ -9,13 +11,13 @@ public class FileManagementService : IFileManagementService
     private readonly string _connectionString;
     private readonly string _fileStoragePath;
     private readonly ILogger<FileManagementService> _logger;
+    private readonly string[] _replicationPeers;
 
     public FileManagementService(IConfiguration configuration, ILogger<FileManagementService> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection");
         _logger = logger;
-        _fileStoragePath = configuration["FileStoragePath"] ??
-                           Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UploadedFiles");
+        _fileStoragePath = configuration["FileStoragePath"] ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "UploadedFiles");
 
         if (!Directory.Exists(_fileStoragePath))
         {
@@ -26,13 +28,15 @@ public class FileManagementService : IFileManagementService
         {
             _logger.LogInformation("Using existing file storage directory at {FileStoragePath}", _fileStoragePath);
         }
+
+        // Read replication peers from configuration (comma-separated)
+        var peers = configuration["ReplicationPeers"];
+        _replicationPeers = string.IsNullOrEmpty(peers) ? Array.Empty<string>() : peers.Split(',', StringSplitOptions.RemoveEmptyEntries);
     }
 
     public async Task<int> UploadFileAsync(string filename, string base64Content, string author, string metadataJson)
     {
         _logger.LogInformation("Starting file upload for file: {Filename} by author: {Author}", filename, author);
-
-        // Convert base64 content to bytes
         var fileBytes = Convert.FromBase64String(base64Content);
         var uniqueFileName = $"{Guid.NewGuid()}_{filename}";
         var filePath = Path.Combine(_fileStoragePath, uniqueFileName);
@@ -84,16 +88,15 @@ public class FileManagementService : IFileManagementService
         }
     }
 
-    public async Task<FileDownloadInfo> DownloadFileInfoAsync(int documentId)
+    // This method is used by the /replicate endpoint to serve files without triggering replication.
+    public async Task<FileDownloadInfo> LocalDownloadFileInfoAsync(int documentId)
     {
-        _logger.LogInformation("Starting file download for document ID: {DocumentId}", documentId);
+        _logger.LogInformation("Local file download requested for document ID: {DocumentId}", documentId);
         string filePath = null;
         string originalFileName = null;
         using (var conn = new NpgsqlConnection(_connectionString))
         {
             await conn.OpenAsync();
-            _logger.LogInformation("Database connection opened for file download.");
-
             var sql = "SELECT file_path, filename FROM documents WHERE id = @id;";
             using (var cmd = new NpgsqlCommand(sql, conn))
             {
@@ -113,16 +116,99 @@ public class FileManagementService : IFileManagementService
                 }
             }
         }
-
         if (filePath == null || !File.Exists(filePath))
         {
-            _logger.LogError("File not found at path: {FilePath} for document ID: {DocumentId}", filePath, documentId);
+            _logger.LogError("Local file not found at path: {FilePath} for document ID: {DocumentId}", filePath, documentId);
             return null;
         }
-
         var fileBytes = await File.ReadAllBytesAsync(filePath);
         var base64Content = Convert.ToBase64String(fileBytes);
-        _logger.LogInformation("File read successfully from disk for document ID: {DocumentId}", documentId);
+        _logger.LogInformation("Local file read successfully for document ID: {DocumentId}", documentId);
         return new FileDownloadInfo { FileName = originalFileName, Base64Content = base64Content };
+    }
+
+    // Modified DownloadFileInfoAsync with on-demand replication.
+    public async Task<FileDownloadInfo> DownloadFileInfoAsync(int documentId)
+    {
+        _logger.LogInformation("Starting file download for document ID: {DocumentId}", documentId);
+        string filePath = null;
+        string originalFileName = null;
+        using (var conn = new NpgsqlConnection(_connectionString))
+        {
+            await conn.OpenAsync();
+            var sql = "SELECT file_path, filename FROM documents WHERE id = @id;";
+            using (var cmd = new NpgsqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("id", documentId);
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        filePath = reader.GetString(0);
+                        originalFileName = reader.GetString(1);
+                        _logger.LogInformation("File record found for document ID: {DocumentId}", documentId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No file record found for document ID: {DocumentId}", documentId);
+                    }
+                }
+            }
+        }
+        
+        // If the file is not available locally, attempt to replicate from a peer.
+        if (filePath == null || !File.Exists(filePath))
+        {
+            _logger.LogWarning("File not found locally for document ID: {DocumentId}. Attempting replication.", documentId);
+            foreach (var peer in _replicationPeers)
+            {
+                try
+                {
+                    var replicationUrl = $"{peer.TrimEnd('/')}/replicate?documentId={documentId}";
+                    using (var client = new HttpClient())
+                    {
+                        var response = await client.GetAsync(replicationUrl);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var json = await response.Content.ReadAsStringAsync();
+                            var fileDownloadInfo = JsonSerializer.Deserialize<FileDownloadInfo>(json);
+                            if (fileDownloadInfo != null)
+                            {
+                                // Save replicated file locally.
+                                var fileBytes = Convert.FromBase64String(fileDownloadInfo.Base64Content);
+                                var newFileName = $"{Guid.NewGuid()}_{fileDownloadInfo.FileName}";
+                                var newFilePath = Path.Combine(_fileStoragePath, newFileName);
+                                await File.WriteAllBytesAsync(newFilePath, fileBytes);
+                                _logger.LogInformation("File replicated from peer {Peer} and stored locally at {NewFilePath}", peer, newFilePath);
+                                
+                                // Optionally: Hier könntest du das Datenbankfeld file_path aktualisieren.
+                                filePath = newFilePath;
+                                originalFileName = fileDownloadInfo.FileName;
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Peer {Peer} returned status {StatusCode} for document ID: {DocumentId}", peer, response.StatusCode, documentId);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Replication from peer {Peer} failed: {Error}", peer, ex.Message);
+                }
+            }
+            
+            if (filePath == null || !File.Exists(filePath))
+            {
+                _logger.LogError("Replication failed. File not found for document ID: {DocumentId}", documentId);
+                return null;
+            }
+        }
+        
+        var localFileBytes = await File.ReadAllBytesAsync(filePath);
+        var localBase64Content = Convert.ToBase64String(localFileBytes);
+        _logger.LogInformation("File read successfully from disk for document ID: {DocumentId}", documentId);
+        return new FileDownloadInfo { FileName = originalFileName, Base64Content = localBase64Content };
     }
 }

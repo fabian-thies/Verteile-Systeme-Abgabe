@@ -46,5 +46,12 @@ while (!dbConnected)
     }
 }
 
+app.MapGet("/replicate", async (int documentId, IFileManagementService fileService) =>
+{
+    var fileInfo = await ((FileManagementService)fileService).LocalDownloadFileInfoAsync(documentId);
+    return fileInfo == null ? Results.NotFound() : Results.Ok(fileInfo);
+});
+
+
 app.MapHub<ChatHub>("/chatHub");
 app.Run();

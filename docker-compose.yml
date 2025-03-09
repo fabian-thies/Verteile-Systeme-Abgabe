@@ -11,13 +11,13 @@ services:
       Redis__Configuration: "redis:6379,abortConnect=false"
       ASPNETCORE_URLS: "http://+:8080"
       ReplicationPeers: "http://server2:5000,http://server3:5000"
+    depends_on:
+      - postgres
+      - redis
     networks:
       verteiltesysteme:
         aliases:
           - server1
-    depends_on:
-      - postgres
-      - redis
 
   server2:
     build:
@@ -29,13 +29,13 @@ services:
       Redis__Configuration: "redis:6379,abortConnect=false"
       ASPNETCORE_URLS: "http://+:8080"
       ReplicationPeers: "http://server1:5000,http://server3:5000"
+    depends_on:
+      - postgres
+      - redis
     networks:
       verteiltesysteme:
         aliases:
           - server2
-    depends_on:
-      - postgres
-      - redis
 
   server3:
     build:
@@ -47,13 +47,13 @@ services:
       Redis__Configuration: "redis:6379,abortConnect=false"
       ASPNETCORE_URLS: "http://+:8080"
       ReplicationPeers: "http://server1:5000,http://server2:5000"
+    depends_on:
+      - postgres
+      - redis
     networks:
       verteiltesysteme:
         aliases:
           - server3
-    depends_on:
-      - postgres
-      - redis
 
   postgres:
     image: postgres:13
@@ -71,11 +71,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  
+    networks:
+      - verteiltesysteme
+
   redis:
     image: redis:latest
     ports:
       - "6379:6379"
+    networks:
+      - verteiltesysteme
 
   nginx:
     build:
@@ -87,6 +91,8 @@ services:
       - server1
       - server2
       - server3
+    networks:
+      - verteiltesysteme
 
 volumes:
   postgres-data:

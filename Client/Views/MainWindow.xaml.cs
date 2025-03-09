@@ -393,7 +393,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        // Process the message through plugins (e.g., moderation plugin).
         var processedMessage = ProcessMessageThroughPlugins(message);
 
         try

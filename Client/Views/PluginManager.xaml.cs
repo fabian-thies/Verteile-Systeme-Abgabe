@@ -1,6 +1,4 @@
-﻿// PluginManager.xaml.cs
-
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Extensions.Logging;

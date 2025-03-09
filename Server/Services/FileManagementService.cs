@@ -29,7 +29,6 @@ public class FileManagementService : IFileManagementService
             _logger.LogInformation("Using existing file storage directory at {FileStoragePath}", _fileStoragePath);
         }
 
-        // Read replication peers from configuration (comma-separated)
         var peers = configuration["ReplicationPeers"];
         _replicationPeers = string.IsNullOrEmpty(peers) ? Array.Empty<string>() : peers.Split(',', StringSplitOptions.RemoveEmptyEntries);
     }
@@ -88,7 +87,6 @@ public class FileManagementService : IFileManagementService
         }
     }
 
-    // This method is used by the /replicate endpoint to serve files without triggering replication.
     public async Task<FileDownloadInfo> LocalDownloadFileInfoAsync(int documentId)
     {
         _logger.LogInformation("Local file download requested for document ID: {DocumentId}", documentId);
@@ -127,7 +125,6 @@ public class FileManagementService : IFileManagementService
         return new FileDownloadInfo { FileName = originalFileName, Base64Content = base64Content };
     }
 
-    // Modified DownloadFileInfoAsync with on-demand replication.
     public async Task<FileDownloadInfo> DownloadFileInfoAsync(int documentId)
     {
         _logger.LogInformation("Starting file download for document ID: {DocumentId}", documentId);
@@ -156,7 +153,6 @@ public class FileManagementService : IFileManagementService
             }
         }
         
-        // If the file is not available locally, attempt to replicate from a peer.
         if (filePath == null || !File.Exists(filePath))
         {
             _logger.LogWarning("File not found locally for document ID: {DocumentId}. Attempting replication.", documentId);
@@ -174,14 +170,12 @@ public class FileManagementService : IFileManagementService
                             var fileDownloadInfo = JsonSerializer.Deserialize<FileDownloadInfo>(json);
                             if (fileDownloadInfo != null)
                             {
-                                // Save replicated file locally.
                                 var fileBytes = Convert.FromBase64String(fileDownloadInfo.Base64Content);
                                 var newFileName = $"{Guid.NewGuid()}_{fileDownloadInfo.FileName}";
                                 var newFilePath = Path.Combine(_fileStoragePath, newFileName);
                                 await File.WriteAllBytesAsync(newFilePath, fileBytes);
                                 _logger.LogInformation("File replicated from peer {Peer} and stored locally at {NewFilePath}", peer, newFilePath);
                                 
-                                // Optionally: Hier könntest du das Datenbankfeld file_path aktualisieren.
                                 filePath = newFilePath;
                                 originalFileName = fileDownloadInfo.FileName;
                                 break;

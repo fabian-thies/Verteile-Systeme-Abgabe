@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Win32;
@@ -26,6 +27,32 @@ public partial class MainWindow : Window
 
         RegisterSignalREvents();
         LoadOpenGroups();
+    }
+    
+    private async void PrivateTargetTextBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var targetUser = PrivateTargetTextBox.Text.Trim();
+        if(!string.IsNullOrEmpty(targetUser))
+        {
+            await LoadPrivateChatHistory(targetUser);
+        }
+    }
+
+    private async Task LoadPrivateChatHistory(string targetUser)
+    {
+        try
+        {
+            var history = await _connection.InvokeAsync<List<MessageDto>>("GetPrivateChatHistory", targetUser);
+            PrivateChatListBox.Items.Clear();
+            foreach(var message in history)
+            {
+                PrivateChatListBox.Items.Add($"{message.Timestamp:HH:mm} {message.SenderId}: {message.Content}");
+            }
+        }
+        catch(Exception ex)
+        {
+            _logger.LogError(ex, "Error loading chat history with {TargetUser}", targetUser);
+        }
     }
 
     public void UpdateLoadedPlugins(IPlugin[] currentlyLoaded)

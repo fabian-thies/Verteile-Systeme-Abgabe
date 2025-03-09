@@ -206,7 +206,6 @@ public class ChatHub : Hub
             _logger.LogInformation("User {Username} disconnected. Connection ID {ConnectionId} removed.", username,
                 Context.ConnectionId);
 
-            // Remove disconnected user from all groups
             foreach (var group in _groups.Keys)
             {
                 if (_groups.TryGetValue(group, out var members))
@@ -365,5 +364,32 @@ public class ChatHub : Hub
         }
         _logger.LogInformation("Total documents retrieved: {Count}", list.Count);
         return list;
+    }
+    
+    public async Task<List<MessageDto>> GetPrivateChatHistory(string targetUser)
+    {
+        if(!_userConnections.TryGetValue(Context.ConnectionId, out var currentUser))
+        {
+            return new List<MessageDto>();
+        }
+        List<MessageDto> history = new List<MessageDto>();
+        using(var conn = new NpgsqlConnection(_connectionString))
+        {
+            await conn.OpenAsync();
+            var sql = "SELECT sender_id, receiver_id, content, timestamp FROM messages WHERE (sender_id = (SELECT id FROM users WHERE username = @currentUser) AND receiver_id = (SELECT id FROM users WHERE username = @targetUser)) OR (sender_id = (SELECT id FROM users WHERE username = @targetUser) AND receiver_id = (SELECT id FROM users WHERE username = @currentUser)) ORDER BY timestamp ASC";
+            using(var cmd = new NpgsqlCommand(sql, conn))
+            {
+                cmd.Parameters.AddWithValue("currentUser", currentUser);
+                cmd.Parameters.AddWithValue("targetUser", targetUser);
+                using(var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while(await reader.ReadAsync())
+                    {
+                        history.Add(new MessageDto { SenderId = reader.GetInt32(0), ReceiverId = reader.GetInt32(1), Content = reader.GetString(2), Timestamp = reader.GetDateTime(3) });
+                    }
+                }
+            }
+        }
+        return history;
     }
 }

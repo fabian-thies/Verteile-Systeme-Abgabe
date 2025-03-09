@@ -14,7 +14,7 @@
 Navigate to the project root (where `docker-compose.yml` is located) and run:
 
 ```bash
-docker-compose up --scale server=3 --build
+docker-compose up
 ```
 
 This sets up:
@@ -23,7 +23,7 @@ This sets up:
 - Redis for caching
 - NGINX load balancer
 
-Wait until the database is ready (about 1-2 minutes). The server will display:
+Wait until the database is ready (about 1-4 minutes). The server will display:
 
 ```
 Database connection established.
@@ -42,4 +42,4 @@ The PostgreSQL database is automatically initialized on first startup using the 
 ### Troubleshooting
 - Ensure Docker Desktop is running.
 - Ports 5000 (NGINX), 5432 (Postgres), and 6379 (Redis) must be available.
-- If the server connection initially fails, wait 1-2 minutes and retry after Docker services fully initialize. Especially on first run.
+- If the server connection initially fails, wait 2-4 minutes and retry after Docker services fully initialize. Especially on first run.

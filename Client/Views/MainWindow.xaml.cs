@@ -161,7 +161,7 @@ public partial class MainWindow : Window
                     var pluginFilePath = Path.Combine(pluginDir, "WhiteboardPlugin.dll");
                     File.WriteAllBytes(pluginFilePath, pluginBytes);
                     _logger.LogInformation("Plugin file saved at {PluginFilePath}", pluginFilePath);
-                    MessageBox.Show("Whiteboard plugin has been automatically loaded.", "Plugin Loaded",
+                    MessageBox.Show("Whiteboard plugin has been automatically loaded. Go to Plugins Tab to load and execute it.", "Plugin Loaded",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
